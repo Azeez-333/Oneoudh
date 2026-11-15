@@ -162,7 +162,7 @@ export const App: React.FC = () => {
   ) => {
     const size = overrideSize ?? selectedSize;
     const price =
-      size === 100 ? frag.price100 : size === 50 ? frag.price50 : 14900;
+      size === 100 ? frag.price100 : size === 50 ? frag.price50 : 999;
 
     setCart((prev) => {
       const existingIdx = prev.findIndex(
@@ -1452,7 +1452,7 @@ export const App: React.FC = () => {
                   size: 20 as const,
                   label: '10 × 2 ML COFFRET',
                   sub: 'Complete Oudh Collection',
-                  price: 14900,
+                  price: 999,
                 },
               ].map((opt) => (
                 <button
@@ -1530,7 +1530,7 @@ export const App: React.FC = () => {
                       ? activeFragrance.price100
                       : selectedSize === 50
                       ? activeFragrance.price50
-                      : 14900
+                      : 999
                   )}
                 </span>
               </button>

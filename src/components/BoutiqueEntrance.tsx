@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ArrowDown } from 'lucide-react';
 
 interface BoutiqueEntranceProps {
@@ -11,218 +11,34 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
   onSkipToShowcase,
 }) => {
   const sectionRef = useRef<HTMLElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const scrollHintRef = useRef<HTMLDivElement>(null);
 
-  const framesRef = useRef<(ImageBitmap | HTMLCanvasElement)[]>([]);
-  const lastDrawnIdxRef = useRef<number>(-1);
-  const [ready, setReady] = useState(false);
-
   useEffect(() => {
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video) return;
 
-    let cancelled = false;
-    const isMobile = window.innerWidth < 768;
-    // Balanced FPS & memory: sharp quality without exhausting GPU texture memory
-    const maxFrames = isMobile ? 24 : 32;
-    const targetCaptureW = isMobile ? 1080 : 1600;
-    const targetCaptureH = isMobile ? 608 : 900;
-
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
-
-    const drawCover = (
-      source: ImageBitmap | HTMLCanvasElement | HTMLVideoElement,
-      srcW: number,
-      srcH: number
-    ) => {
-      if (!srcW || !srcH) return;
-      const cw = canvas.width;
-      const ch = canvas.height;
-      const scale = Math.max(cw / srcW, ch / srcH);
-      const dw = srcW * scale;
-      const dh = srcH * scale;
-      const dx = (cw - dw) / 2;
-      const dy = (ch - dh) / 2;
-      ctx.drawImage(source, dx, dy, dw, dh);
-    };
-
-    const getScrollProgress = () => {
-      const sec = sectionRef.current;
-      if (!sec) return 0;
-      const rect = sec.getBoundingClientRect();
-      const scrollable = Math.max(1, rect.height - window.innerHeight);
-      return Math.max(0, Math.min(1, -rect.top / scrollable));
-    };
-
-    const redrawCurrentFrame = () => {
-      const frames = framesRef.current;
-      const progress = getScrollProgress();
-      if (frames.length > 0) {
-        const idx = Math.min(
-          frames.length - 1,
-          Math.max(0, Math.round(progress * (frames.length - 1)))
-        );
-        const f = frames[idx];
-        const fw = 'width' in f ? f.width : targetCaptureW;
-        const fh = 'height' in f ? f.height : targetCaptureH;
-        drawCover(f, fw, fh);
-        lastDrawnIdxRef.current = idx;
-      } else if (video.readyState >= 2 && video.videoWidth) {
-        drawCover(video, video.videoWidth, video.videoHeight);
-      }
-    };
-
-    let lastW = window.innerWidth;
-    let lastH = window.innerHeight;
-    const resizeCanvas = () => {
-      // Ignore tiny mobile URL-bar height jitter so canvas never flashes black
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      if (canvas.width > 0 && w === lastW && Math.abs(h - lastH) < 120) return;
-      lastW = w;
-      lastH = h;
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(320, Math.floor(w * dpr));
-      canvas.height = Math.max(240, Math.floor(h * dpr));
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      lastDrawnIdxRef.current = -1;
-      // Immediately redraw after resizing so canvas is NEVER blank/black
-      redrawCurrentFrame();
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    const captureFrame = async (): Promise<boolean> => {
-      if (cancelled || !video.videoWidth || !video.videoHeight || video.readyState < 2) {
-        return false;
-      }
-      let tile: ImageBitmap | HTMLCanvasElement;
-      if (typeof createImageBitmap === 'function') {
-        try {
-          tile = await createImageBitmap(video, {
-            resizeWidth: targetCaptureW,
-            resizeHeight: targetCaptureH,
-            resizeQuality: 'high',
-          });
-        } catch {
-          const copy = document.createElement('canvas');
-          copy.width = targetCaptureW;
-          copy.height = targetCaptureH;
-          copy.getContext('2d')?.drawImage(video, 0, 0, targetCaptureW, targetCaptureH);
-          tile = copy;
-        }
-      } else {
-        const copy = document.createElement('canvas');
-        copy.width = targetCaptureW;
-        copy.height = targetCaptureH;
-        copy.getContext('2d')?.drawImage(video, 0, 0, targetCaptureW, targetCaptureH);
-        tile = copy;
-      }
-      if (!cancelled) {
-        framesRef.current.push(tile);
-        return true;
-      }
-      return false;
-    };
-
-    // Single-pass linear capture at 2.5x (smooth, reliable, never races video.load)
-    const startLinearCapture = async () => {
-      const duration = video.duration;
-      if (!duration || !isFinite(duration)) return;
-
-      const minStep = duration / maxFrames;
-      let lastCapturedT = -1;
-      let capturing = false;
-
-      const finishCapture = () => {
-        if (cancelled) return;
-        video.pause();
-        // Keep frame 0 ready; only clear once all async captures have settled
-        redrawCurrentFrame();
-      };
-
-      try {
-        video.playbackRate = 2.5;
-        await video.play();
-
-        if ('requestVideoFrameCallback' in video) {
-          const onFrame = async (_now: number, meta: { mediaTime: number }) => {
-            if (cancelled) {
-              finishCapture();
-              return;
-            }
-            if (!capturing && meta.mediaTime - lastCapturedT >= minStep * 0.85 && framesRef.current.length < maxFrames) {
-              capturing = true;
-              lastCapturedT = meta.mediaTime;
-              await captureFrame();
-              capturing = false;
-            }
-            if (video.ended || framesRef.current.length >= maxFrames) {
-              finishCapture();
-              return;
-            }
-            (video as HTMLVideoElement & {
-              requestVideoFrameCallback: (cb: (now: number, meta: { mediaTime: number }) => void) => void;
-            }).requestVideoFrameCallback(onFrame);
-          };
-          (video as HTMLVideoElement & {
-            requestVideoFrameCallback: (cb: (now: number, meta: { mediaTime: number }) => void) => void;
-          }).requestVideoFrameCallback(onFrame);
-          return;
-        }
-      } catch {
-        // Fallback below if autoplay is blocked
-      }
-
-      // Sparse sequential seek fallback
-      const fallbackCount = isMobile ? 20 : 28;
-      for (let i = 1; i < fallbackCount; i++) {
-        if (cancelled) break;
-        const t = (i / (fallbackCount - 1)) * Math.max(0.05, duration - 0.04);
-        await new Promise<void>((resolve) => {
-          const onSeeked = () => {
-            video.removeEventListener('seeked', onSeeked);
-            resolve();
-          };
-          video.addEventListener('seeked', onSeeked, { once: true });
-          video.currentTime = t;
-          setTimeout(() => {
-            video.removeEventListener('seeked', onSeeked);
-            resolve();
-          }, 180);
-        });
-        await captureFrame();
-      }
-      finishCapture();
-    };
-
-    const onLoadedData = async () => {
-      if (video.videoWidth && video.videoHeight) {
-        drawCover(video, video.videoWidth, video.videoHeight);
-        await captureFrame();
-        setReady(true);
-      }
-      startLinearCapture();
-    };
-
-    if (video.readyState >= 2) {
-      onLoadedData();
-    } else {
-      video.addEventListener('loadeddata', onLoadedData, { once: true });
-    }
-
-    // Event-driven scroll rendering (0% CPU when not scrolling)
     let rafId = 0;
     let scheduled = false;
+    let targetTime = 0;
+    let iosUnlocked = false;
 
-    const updateFrame = () => {
+    const unlockForIOS = () => {
+      if (iosUnlocked) return;
+      iosUnlocked = true;
+      // Unlock hardware video decoder on iPhone/iOS Safari on first user gesture
+      video
+        .play()
+        .then(() => {
+          video.pause();
+        })
+        .catch(() => {
+          // Ignore if already unlocked or blocked
+        });
+    };
+
+    const syncVideoToScroll = () => {
       scheduled = false;
       const sec = sectionRef.current;
       if (!sec) return;
@@ -233,18 +49,11 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       const scrollable = Math.max(1, rect.height - window.innerHeight);
       const progress = Math.max(0, Math.min(1, -rect.top / scrollable));
 
-      const frames = framesRef.current;
-      if (frames.length > 0) {
-        const idx = Math.min(
-          frames.length - 1,
-          Math.max(0, Math.round(progress * (frames.length - 1)))
-        );
-        if (idx !== lastDrawnIdxRef.current) {
-          const f = frames[idx];
-          const fw = 'width' in f ? f.width : targetCaptureW;
-          const fh = 'height' in f ? f.height : targetCaptureH;
-          drawCover(f, fw, fh);
-          lastDrawnIdxRef.current = idx;
+      if (video.duration && isFinite(video.duration)) {
+        targetTime = progress * Math.max(0.05, video.duration - 0.04);
+        // Never interrupt an active hardware seek (prevents lag & frame drops)
+        if (!video.seeking && Math.abs(video.currentTime - targetTime) > 0.025) {
+          video.currentTime = targetTime;
         }
       }
 
@@ -257,28 +66,48 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       }
     };
 
-    const onScroll = () => {
-      if (!scheduled) {
-        scheduled = true;
-        rafId = requestAnimationFrame(updateFrame);
+    const onSeeked = () => {
+      // Catch up cleanly to the latest scroll position once hardware seek completes
+      if (
+        video.duration &&
+        isFinite(video.duration) &&
+        !video.seeking &&
+        Math.abs(video.currentTime - targetTime) > 0.03
+      ) {
+        video.currentTime = targetTime;
       }
     };
 
+    const onLoadedMetadata = () => {
+      video.pause();
+      if (video.currentTime === 0) {
+        video.currentTime = 0.01;
+      }
+      syncVideoToScroll();
+    };
+
+    const onScroll = () => {
+      if (!scheduled) {
+        scheduled = true;
+        rafId = requestAnimationFrame(syncVideoToScroll);
+      }
+    };
+
+    video.addEventListener('loadedmetadata', onLoadedMetadata);
+    video.addEventListener('seeked', onSeeked);
     window.addEventListener('scroll', onScroll, { passive: true });
-    updateFrame();
+    window.addEventListener('touchstart', unlockForIOS, { passive: true, once: true });
+
+    if (video.readyState >= 1) {
+      onLoadedMetadata();
+    }
 
     return () => {
-      cancelled = true;
       cancelAnimationFrame(rafId);
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video.removeEventListener('seeked', onSeeked);
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', resizeCanvas);
-      video.removeEventListener('loadeddata', onLoadedData);
-      framesRef.current.forEach((f) => {
-        if ('close' in f && typeof f.close === 'function') {
-          f.close();
-        }
-      });
-      framesRef.current = [];
+      window.removeEventListener('touchstart', unlockForIOS);
     };
   }, []);
 
@@ -288,27 +117,19 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       aria-label="ONE OUDH Flagship Boutique Entrance"
       className="relative w-full h-[160vh] sm:h-[185vh] select-none"
     >
-      {/* Hidden source video used only for single-pass fast frame capture */}
-      <video
-        ref={videoRef}
-        src="/videos/boutique-entrance.mp4"
-        preload="auto"
-        muted
-        playsInline
-        crossOrigin="anonymous"
-        className="hidden"
-      />
-
-      {/* Sticky 100vh GPU-Isolated Viewport Stage */}
+      {/* Sticky 100vh Native Full-1080p Video Stage (Zero Downscaling, Zero Black Flashes) */}
       <div
         className="sticky top-0 w-full h-screen overflow-hidden bg-[#f4efe6]"
         style={{ contain: 'layout paint', transform: 'translateZ(0)' }}
       >
-        <canvas
-          ref={canvasRef}
-          className={`w-full h-full block transition-opacity duration-300 ${
-            ready ? 'opacity-100' : 'opacity-0'
-          }`}
+        <video
+          ref={videoRef}
+          src="/videos/boutique-entrance.mp4"
+          preload="auto"
+          muted
+          playsInline
+          disablePictureInPicture
+          className="w-full h-full object-cover block"
         />
 
         {/* Subtle Top Ivory/Emerald Gradient for Header Legibility */}

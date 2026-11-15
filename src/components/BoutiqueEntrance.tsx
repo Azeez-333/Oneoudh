@@ -27,11 +27,12 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
 
     let cancelled = false;
     const isMobile = window.innerWidth < 768;
-    const maxFrames = isMobile ? 28 : 42;
-    const targetCaptureW = isMobile ? 1280 : 1920;
-    const targetCaptureH = isMobile ? 720 : 1080;
+    const maxFrames = isMobile ? 24 : 38;
+    const targetCaptureW = isMobile ? 960 : 1920;
+    const targetCaptureH = isMobile ? 540 : 1080;
 
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    // Standard synced 2D context (avoids mobile desynchronized buffer-tearing speckles)
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     const resizeCanvas = () => {

@@ -66,7 +66,19 @@ export const App: React.FC = () => {
 
   const homeDragRef = useRef({ active: false, startX: 0, startOffset: 7, moved: false });
   const touchSwipeRef = useRef({ active: false, startX: 0, startY: 0 });
-  const otherDragRef = useRef({ active: false, startX: 0, startY: 0, startOffset: 0, moved: false });
+  const otherDragRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastT: 0,
+    startOffset: 0,
+    velocity: 0,
+    moved: false,
+    rafId: 0,
+  });
+  const otherArcRef = useRef(0);
+  otherArcRef.current = otherArcOffset;
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
@@ -867,65 +879,133 @@ export const App: React.FC = () => {
           style={{ touchAction: 'pan-y' }}
           onPointerDown={(e) => {
             if (e.pointerType === 'touch') return;
+            cancelAnimationFrame(otherDragRef.current.rafId);
+            const now = performance.now();
             otherDragRef.current = {
               active: true,
               startX: e.clientX,
               startY: e.clientY,
-              startOffset: otherArcOffset,
+              lastX: e.clientX,
+              lastT: now,
+              startOffset: otherArcRef.current,
+              velocity: 0,
               moved: false,
+              rafId: 0,
             };
           }}
           onPointerMove={(e) => {
             if (e.pointerType === 'touch' || !otherDragRef.current.active) return;
+            const now = performance.now();
+            const dt = Math.max(8, now - otherDragRef.current.lastT);
+            const stepDx = e.clientX - otherDragRef.current.lastX;
+            const instantV = ((stepDx / 220) / dt) * 1000;
+            otherDragRef.current.velocity = otherDragRef.current.velocity * 0.55 + instantV * 0.45;
+            otherDragRef.current.lastX = e.clientX;
+            otherDragRef.current.lastT = now;
+
             const dx = e.clientX - otherDragRef.current.startX;
             if (Math.abs(dx) > 6) otherDragRef.current.moved = true;
             setOtherArcOffset(otherDragRef.current.startOffset + dx / 220);
           }}
           onPointerUp={() => {
+            if (!otherDragRef.current.active) return;
             otherDragRef.current.active = false;
+            let vel = otherDragRef.current.velocity;
+            let pos = otherArcRef.current;
+            let prev = performance.now();
+
+            const stepMomentum = (now: number) => {
+              const dt = Math.min(0.05, (now - prev) / 1000);
+              prev = now;
+              pos += vel * dt;
+              vel *= Math.pow(0.05, dt);
+              if (Math.abs(vel) > 0.22) {
+                setOtherArcOffset(pos);
+                otherDragRef.current.rafId = requestAnimationFrame(stepMomentum);
+              } else {
+                setOtherArcOffset(Math.round(pos));
+              }
+            };
+            otherDragRef.current.rafId = requestAnimationFrame(stepMomentum);
           }}
           onPointerCancel={() => {
             otherDragRef.current.active = false;
           }}
           onPointerLeave={() => {
-            otherDragRef.current.active = false;
+            if (otherDragRef.current.active) {
+              otherDragRef.current.active = false;
+              setOtherArcOffset((prev) => Math.round(prev));
+            }
           }}
           onTouchStart={(e) => {
             if (e.touches.length !== 1) return;
+            cancelAnimationFrame(otherDragRef.current.rafId);
+            const now = performance.now();
             otherDragRef.current = {
               active: true,
               startX: e.touches[0].clientX,
               startY: e.touches[0].clientY,
-              startOffset: otherArcOffset,
+              lastX: e.touches[0].clientX,
+              lastT: now,
+              startOffset: otherArcRef.current,
+              velocity: 0,
               moved: false,
+              rafId: 0,
             };
           }}
           onTouchMove={(e) => {
             if (!otherDragRef.current.active || e.touches.length !== 1) return;
-            const dx = e.touches[0].clientX - otherDragRef.current.startX;
-            const dy = e.touches[0].clientY - otherDragRef.current.startY;
-            if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+            const xNow = e.touches[0].clientX;
+            const yNow = e.touches[0].clientY;
+            const dx = xNow - otherDragRef.current.startX;
+            const dy = yNow - otherDragRef.current.startY;
+            if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+              const now = performance.now();
+              const dt = Math.max(8, now - otherDragRef.current.lastT);
+              const stepDx = xNow - otherDragRef.current.lastX;
+              const instantV = ((stepDx / 140) / dt) * 1000;
+              otherDragRef.current.velocity = otherDragRef.current.velocity * 0.5 + instantV * 0.5;
+              otherDragRef.current.lastX = xNow;
+              otherDragRef.current.lastT = now;
               otherDragRef.current.moved = true;
-              setOtherArcOffset(otherDragRef.current.startOffset + dx / 180);
+              setOtherArcOffset(otherDragRef.current.startOffset + dx / 140);
             }
           }}
           onTouchEnd={() => {
+            if (!otherDragRef.current.active) return;
             otherDragRef.current.active = false;
-            setOtherArcOffset((prev) => Math.round(prev));
+            let vel = otherDragRef.current.velocity;
+            let pos = otherArcRef.current;
+            let prev = performance.now();
+
+            const stepMomentum = (now: number) => {
+              const dt = Math.min(0.05, (now - prev) / 1000);
+              prev = now;
+              pos += vel * dt;
+              vel *= Math.pow(0.045, dt);
+              if (Math.abs(vel) > 0.25) {
+                setOtherArcOffset(pos);
+                otherDragRef.current.rafId = requestAnimationFrame(stepMomentum);
+              } else {
+                setOtherArcOffset(Math.round(pos));
+              }
+            };
+            otherDragRef.current.rafId = requestAnimationFrame(stepMomentum);
           }}
-          className="relative w-full h-[460px] sm:h-[500px] flex items-center justify-center cursor-grab active:cursor-grabbing overflow-hidden select-none"
+          className="relative w-full h-[350px] sm:h-[500px] flex items-center justify-center cursor-grab active:cursor-grabbing overflow-hidden select-none"
         >
           {[-3, -2, -1, 0, 1, 2, 3].map((slot) => {
-            const shifted = slot + (otherArcOffset % 1);
+            const frac = otherArcOffset - Math.floor(otherArcOffset);
+            const shifted = slot + frac;
             const fragIndex =
               ((activeIndex + slot - Math.floor(otherArcOffset)) % FRAGRANCES.length +
                 FRAGRANCES.length) %
               FRAGRANCES.length;
             const frag = FRAGRANCES[fragIndex];
-            const isCenterYours = slot === 0 && Math.abs(otherArcOffset % 1) < 0.35;
+            const isCenterYours = slot === 0 && Math.abs(frac) < 0.35;
 
-            const x = shifted * (isMobile ? 215 : 265);
-            const y = -Math.pow(shifted, 2) * 14 + 28;
+            const x = shifted * (isMobile ? 138 : 265);
+            const y = -Math.pow(shifted, 2) * (isMobile ? 9 : 14) + (isMobile ? 16 : 28);
             const scale = 1 - Math.abs(shifted) * 0.08 + (Math.abs(shifted) > 1.5 ? 0.14 : 0);
             const rotateY = shifted * -14;
             const skewY = shifted * -3.5;
@@ -943,10 +1023,10 @@ export const App: React.FC = () => {
                   transform: `perspective(1200px) translate3d(${x}px, ${y}px, 0) scale(${scale}) rotateY(${rotateY}deg) skewY(${skewY}deg)`,
                   zIndex: 20 - Math.abs(slot),
                 }}
-                className="absolute w-[235px] sm:w-[250px] transition-transform duration-300 ease-out group cursor-pointer"
+                className="absolute w-[142px] sm:w-[235px] md:w-[250px] transition-transform duration-75 ease-out group cursor-pointer"
               >
                 <div
-                  className={`relative h-[340px] rounded-sm p-4 flex flex-col justify-between transition-all ${
+                  className={`relative h-[220px] sm:h-[340px] rounded-sm p-2.5 sm:p-4 flex flex-col justify-between transition-all ${
                     isCenterYours
                       ? isDark
                         ? 'bg-[#2a1416]/75 border border-dashed border-[#c9a04e]/60'
@@ -957,13 +1037,13 @@ export const App: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`flex items-center justify-between text-[9px] tracking-[0.2em] uppercase font-semibold ${
+                    className={`flex items-center justify-between text-[8px] sm:text-[9px] tracking-[0.2em] uppercase font-semibold ${
                       isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                     }`}
                   >
                     <span>{frag.number}</span>
                     <span
-                      className="w-2 h-2 rounded-full"
+                      className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
                       style={{ backgroundColor: frag.liquidColor }}
                     />
                   </div>
@@ -971,7 +1051,7 @@ export const App: React.FC = () => {
                   <div className="my-auto flex items-center justify-center">
                     <BottleSilhouette
                       fragrance={frag}
-                      size="md"
+                      size={isMobile ? 'sm' : 'md'}
                       className="group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>

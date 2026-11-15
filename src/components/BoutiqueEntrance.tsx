@@ -27,9 +27,9 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
 
     let cancelled = false;
     const isMobile = window.innerWidth < 768;
-    const maxFrames = isMobile ? 24 : 38;
-    const targetCaptureW = isMobile ? 960 : 1920;
-    const targetCaptureH = isMobile ? 540 : 1080;
+    const maxFrames = isMobile ? 24 : 40;
+    const targetCaptureW = 1920;
+    const targetCaptureH = 1080;
 
     // Standard synced 2D context (avoids mobile desynchronized buffer-tearing speckles)
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -67,12 +67,8 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       let tile: ImageBitmap | HTMLCanvasElement;
       if (typeof createImageBitmap === 'function') {
         try {
-          tile = await createImageBitmap(
-            video,
-            isMobile
-              ? { resizeWidth: targetCaptureW, resizeHeight: targetCaptureH, resizeQuality: 'high' }
-              : undefined
-          );
+          // Always capture at full native 1920x1080 resolution on both mobile & desktop
+          tile = await createImageBitmap(video);
         } catch {
           const copy = document.createElement('canvas');
           copy.width = targetCaptureW;

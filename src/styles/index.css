@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --cream: #eee4da;
+    --ink: #2b1416;
+    --oxblood: #6e1a1e;
+    --accent-red: #b3261e;
+    --gold: #c9a04e;
+  }
+
+  html {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #eee4da;
+    color: #2b1416;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: #eee4da;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.font-serif {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-display {
+  font-family: 'Anton', Impact, sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.font-sans {
+  font-family: 'Manrope', sans-serif;
+}
+
+@keyframes leafSwaySlow {
+  0%, 100% {
+    transform: rotate(0deg) translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: rotate(2.8deg) translate(14px, 8px) scale(1.03);
+  }
+}
+
+@keyframes leafSwayReverse {
+  0%, 100% {
+    transform: rotate(0deg) translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: rotate(-2.5deg) translate(-16px, 10px) scale(1.02);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes mistToast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 16px) scale(0.95);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0px) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.98);
+  }
+}
+
+.animate-leaf-sway-slow {
+  animation: leafSwaySlow 9s ease-in-out infinite;
+}
+
+.animate-leaf-sway-reverse {
+  animation: leafSwayReverse 11s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 24s linear infinite;
+}
+
+.animate-spin-very-slow {
+  animation: spinSlow 52s linear infinite;
+}
+
+.animate-marquee {
+  animation: marqueeScroll 28s linear infinite;
+}
+
+.animate-mist-toast {
+  animation: mistToast 2.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+

@@ -27,24 +27,13 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
 
     let cancelled = false;
     const isMobile = window.innerWidth < 768;
-    const maxFrames = isMobile ? 24 : 40;
-    const targetCaptureW = 1920;
-    const targetCaptureH = 1080;
+    // Balanced FPS & memory: sharp quality without exhausting GPU texture memory
+    const maxFrames = isMobile ? 24 : 32;
+    const targetCaptureW = isMobile ? 1080 : 1600;
+    const targetCaptureH = isMobile ? 608 : 900;
 
-    // Standard synced 2D context (avoids mobile desynchronized buffer-tearing speckles)
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
-
-    const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(320, Math.floor(window.innerWidth * dpr));
-      canvas.height = Math.max(240, Math.floor(window.innerHeight * dpr));
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      lastDrawnIdxRef.current = -1;
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
 
     const drawCover = (
       source: ImageBitmap | HTMLCanvasElement | HTMLVideoElement,
@@ -62,13 +51,66 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       ctx.drawImage(source, dx, dy, dw, dh);
     };
 
-    const captureFrame = async () => {
-      if (cancelled || !video.videoWidth || !video.videoHeight) return;
+    const getScrollProgress = () => {
+      const sec = sectionRef.current;
+      if (!sec) return 0;
+      const rect = sec.getBoundingClientRect();
+      const scrollable = Math.max(1, rect.height - window.innerHeight);
+      return Math.max(0, Math.min(1, -rect.top / scrollable));
+    };
+
+    const redrawCurrentFrame = () => {
+      const frames = framesRef.current;
+      const progress = getScrollProgress();
+      if (frames.length > 0) {
+        const idx = Math.min(
+          frames.length - 1,
+          Math.max(0, Math.round(progress * (frames.length - 1)))
+        );
+        const f = frames[idx];
+        const fw = 'width' in f ? f.width : targetCaptureW;
+        const fh = 'height' in f ? f.height : targetCaptureH;
+        drawCover(f, fw, fh);
+        lastDrawnIdxRef.current = idx;
+      } else if (video.readyState >= 2 && video.videoWidth) {
+        drawCover(video, video.videoWidth, video.videoHeight);
+      }
+    };
+
+    let lastW = window.innerWidth;
+    let lastH = window.innerHeight;
+    const resizeCanvas = () => {
+      // Ignore tiny mobile URL-bar height jitter so canvas never flashes black
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (canvas.width > 0 && w === lastW && Math.abs(h - lastH) < 120) return;
+      lastW = w;
+      lastH = h;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(320, Math.floor(w * dpr));
+      canvas.height = Math.max(240, Math.floor(h * dpr));
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      lastDrawnIdxRef.current = -1;
+      // Immediately redraw after resizing so canvas is NEVER blank/black
+      redrawCurrentFrame();
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const captureFrame = async (): Promise<boolean> => {
+      if (cancelled || !video.videoWidth || !video.videoHeight || video.readyState < 2) {
+        return false;
+      }
       let tile: ImageBitmap | HTMLCanvasElement;
       if (typeof createImageBitmap === 'function') {
         try {
-          // Always capture at full native 1920x1080 resolution on both mobile & desktop
-          tile = await createImageBitmap(video);
+          tile = await createImageBitmap(video, {
+            resizeWidth: targetCaptureW,
+            resizeHeight: targetCaptureH,
+            resizeQuality: 'high',
+          });
         } catch {
           const copy = document.createElement('canvas');
           copy.width = targetCaptureW;
@@ -85,37 +127,42 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       }
       if (!cancelled) {
         framesRef.current.push(tile);
+        return true;
       }
+      return false;
     };
 
-    // Single-pass linear decode (10x faster and zero H.264 random-seek thrashing)
+    // Single-pass linear capture at 2.5x (smooth, reliable, never races video.load)
     const startLinearCapture = async () => {
       const duration = video.duration;
       if (!duration || !isFinite(duration)) return;
 
       const minStep = duration / maxFrames;
       let lastCapturedT = -1;
+      let capturing = false;
 
       const finishCapture = () => {
+        if (cancelled) return;
         video.pause();
-        video.removeAttribute('src');
-        video.load();
+        // Keep frame 0 ready; only clear once all async captures have settled
+        redrawCurrentFrame();
       };
 
       try {
-        video.playbackRate = 4.0;
+        video.playbackRate = 2.5;
         await video.play();
 
-        const useRVFC = 'requestVideoFrameCallback' in video;
-        if (useRVFC) {
+        if ('requestVideoFrameCallback' in video) {
           const onFrame = async (_now: number, meta: { mediaTime: number }) => {
             if (cancelled) {
               finishCapture();
               return;
             }
-            if (meta.mediaTime - lastCapturedT >= minStep * 0.85 && framesRef.current.length < maxFrames) {
+            if (!capturing && meta.mediaTime - lastCapturedT >= minStep * 0.85 && framesRef.current.length < maxFrames) {
+              capturing = true;
               lastCapturedT = meta.mediaTime;
               await captureFrame();
+              capturing = false;
             }
             if (video.ended || framesRef.current.length >= maxFrames) {
               finishCapture();
@@ -134,8 +181,8 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
         // Fallback below if autoplay is blocked
       }
 
-      // Lightweight sparse seek fallback (only 24 frames)
-      const fallbackCount = 24;
+      // Sparse sequential seek fallback
+      const fallbackCount = isMobile ? 20 : 28;
       for (let i = 1; i < fallbackCount; i++) {
         if (cancelled) break;
         const t = (i / (fallbackCount - 1)) * Math.max(0.05, duration - 0.04);
@@ -149,17 +196,17 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
           setTimeout(() => {
             video.removeEventListener('seeked', onSeeked);
             resolve();
-          }, 160);
+          }, 180);
         });
         await captureFrame();
       }
       finishCapture();
     };
 
-    const onLoadedData = () => {
+    const onLoadedData = async () => {
       if (video.videoWidth && video.videoHeight) {
         drawCover(video, video.videoWidth, video.videoHeight);
-        captureFrame();
+        await captureFrame();
         setReady(true);
       }
       startLinearCapture();
@@ -284,7 +331,7 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
           }}
         />
 
-        {/* Bottom Scroll Cue + Skip Entrance Button (no backdrop-blur over 60fps canvas) */}
+        {/* Bottom Scroll Cue + Skip Entrance Button */}
         <div className="absolute bottom-6 sm:bottom-8 inset-x-0 z-20 px-5 flex flex-col items-center gap-2.5 pointer-events-none">
           <div
             ref={scrollHintRef}

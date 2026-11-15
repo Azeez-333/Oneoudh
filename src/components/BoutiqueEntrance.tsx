@@ -27,18 +27,19 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
 
     let cancelled = false;
     const isMobile = window.innerWidth < 768;
-    const maxFrames = isMobile ? 28 : 38;
-    const frameW = isMobile ? 560 : 880;
-    const frameH = isMobile ? 315 : 495;
+    const maxFrames = isMobile ? 28 : 42;
+    const targetCaptureW = isMobile ? 1280 : 1920;
+    const targetCaptureH = isMobile ? 720 : 1080;
 
     const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
     if (!ctx) return;
 
     const resizeCanvas = () => {
-      const maxW = isMobile ? 640 : 1120;
-      const scale = Math.min(1, maxW / Math.max(1, window.innerWidth));
-      canvas.width = Math.max(320, Math.floor(window.innerWidth * scale));
-      canvas.height = Math.max(240, Math.floor(window.innerHeight * scale));
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(320, Math.floor(window.innerWidth * dpr));
+      canvas.height = Math.max(240, Math.floor(window.innerHeight * dpr));
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       lastDrawnIdxRef.current = -1;
     };
     resizeCanvas();
@@ -60,30 +61,29 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
       ctx.drawImage(source, dx, dy, dw, dh);
     };
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = frameW;
-    tempCanvas.height = frameH;
-    const tempCtx = tempCanvas.getContext('2d', { alpha: false });
-
     const captureFrame = async () => {
-      if (!tempCtx || cancelled) return;
-      tempCtx.drawImage(video, 0, 0, frameW, frameH);
+      if (cancelled || !video.videoWidth || !video.videoHeight) return;
       let tile: ImageBitmap | HTMLCanvasElement;
       if (typeof createImageBitmap === 'function') {
         try {
-          tile = await createImageBitmap(tempCanvas);
+          tile = await createImageBitmap(
+            video,
+            isMobile
+              ? { resizeWidth: targetCaptureW, resizeHeight: targetCaptureH, resizeQuality: 'high' }
+              : undefined
+          );
         } catch {
           const copy = document.createElement('canvas');
-          copy.width = frameW;
-          copy.height = frameH;
-          copy.getContext('2d')?.drawImage(tempCanvas, 0, 0);
+          copy.width = targetCaptureW;
+          copy.height = targetCaptureH;
+          copy.getContext('2d')?.drawImage(video, 0, 0, targetCaptureW, targetCaptureH);
           tile = copy;
         }
       } else {
         const copy = document.createElement('canvas');
-        copy.width = frameW;
-        copy.height = frameH;
-        copy.getContext('2d')?.drawImage(tempCanvas, 0, 0);
+        copy.width = targetCaptureW;
+        copy.height = targetCaptureH;
+        copy.getContext('2d')?.drawImage(video, 0, 0, targetCaptureW, targetCaptureH);
         tile = copy;
       }
       if (!cancelled) {
@@ -94,7 +94,7 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
     // Single-pass linear decode (10x faster and zero H.264 random-seek thrashing)
     const startLinearCapture = async () => {
       const duration = video.duration;
-      if (!duration || !isFinite(duration) || !tempCtx) return;
+      if (!duration || !isFinite(duration)) return;
 
       const minStep = duration / maxFrames;
       let lastCapturedT = -1;
@@ -196,7 +196,10 @@ export const BoutiqueEntrance: React.FC<BoutiqueEntranceProps> = ({
           Math.max(0, Math.round(progress * (frames.length - 1)))
         );
         if (idx !== lastDrawnIdxRef.current) {
-          drawCover(frames[idx], frameW, frameH);
+          const f = frames[idx];
+          const fw = 'width' in f ? f.width : targetCaptureW;
+          const fh = 'height' in f ? f.height : targetCaptureH;
+          drawCover(f, fw, fh);
           lastDrawnIdxRef.current = idx;
         }
       }

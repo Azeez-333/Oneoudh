@@ -18,6 +18,7 @@ import { WatchRoller } from './components/WatchRoller';
 import { ShopCatalogue } from './components/ShopCatalogue';
 import { StarfieldCanvas } from './components/StarfieldCanvas';
 import { OneOudhLogo } from './components/OneOudhLogo';
+import { BoutiqueEntrance } from './components/BoutiqueEntrance';
 
 interface CartItem {
   fragrance: Fragrance;
@@ -65,7 +66,7 @@ export const App: React.FC = () => {
 
   const homeDragRef = useRef({ active: false, startX: 0, startOffset: 7, moved: false });
   const touchSwipeRef = useRef({ active: false, startX: 0, startY: 0 });
-  const otherDragRef = useRef({ active: false, startX: 0, startOffset: 0 });
+  const otherDragRef = useRef({ active: false, startX: 0, startY: 0, startOffset: 0, moved: false });
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
@@ -79,20 +80,18 @@ export const App: React.FC = () => {
   const activeFragrance = FRAGRANCES[activeIndex];
   const isDark = theme === 'dark';
 
-  // Smooth scroll with Lenis + Zero-re-render DOM transform updates
+  // Smooth scroll with Lenis (desktop wheel only; native 120fps touch on mobile)
   useEffect(() => {
     const lenis = new Lenis({
-      duration: 1.15,
+      duration: 0.95,
       smoothWheel: true,
+      syncTouch: false,
     });
 
     let lastTunnel = 42;
     let rafId = 0;
 
-    const raf = (time: number) => {
-      lenis.raf(time);
-
-      // Direct DOM transforms (zero React re-renders per frame)
+    lenis.on('scroll', () => {
       if (marqueeRef.current) {
         const vel = Math.max(-14, Math.min(14, lenis.velocity * 0.35));
         marqueeRef.current.style.transform = `skewX(${vel}deg)`;
@@ -115,13 +114,16 @@ export const App: React.FC = () => {
         if (rect.top < vh && rect.bottom > 0) {
           const raw = ((vh * 0.75 - rect.top) / (rect.height * 0.85)) * 100;
           const clamped = Math.max(1, Math.min(100, Math.round(raw)));
-          if (Math.abs(clamped - lastTunnel) >= 2) {
+          if (Math.abs(clamped - lastTunnel) >= 3) {
             lastTunnel = clamped;
             setTunnelProgress(clamped);
           }
         }
       }
+    });
 
+    const raf = (time: number) => {
+      lenis.raf(time);
       rafId = requestAnimationFrame(raf);
     };
     rafId = requestAnimationFrame(raf);
@@ -196,7 +198,7 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`relative min-h-screen transition-colors duration-700 overflow-x-hidden ${
+      className={`relative min-h-screen transition-colors duration-700 overflow-x-clip ${
         isDark
           ? 'text-[#f2e6da] selection:bg-[#c9a04e] selection:text-[#14090a]'
           : 'text-[#14332a] selection:bg-[#14332a] selection:text-[#f4efe6]'
@@ -236,10 +238,10 @@ export const App: React.FC = () => {
           {/* Left: Icon-Only Light / Dark Screen Toggle */}
           <div className="flex items-center shrink-0 pointer-events-auto">
             <div
-              className={`inline-flex items-center rounded-full border p-1 shadow-sm backdrop-blur-md transition-colors ${
+              className={`inline-flex items-center rounded-full border p-1 shadow-sm transition-colors ${
                 isDark
-                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/85'
-                  : 'border-[#14332a]/25 bg-[#f4efe6]/90'
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/95'
+                  : 'border-[#14332a]/25 bg-[#f4efe6]/95'
               }`}
             >
               <button
@@ -281,12 +283,12 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 pointer-events-auto">
             <button
               onClick={() => (view === 'shop' ? openHome() : openShop())}
-              className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border backdrop-blur-md text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
+              className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
                 view === 'shop'
                   ? 'bg-[#14332a] text-[#f4efe6] border-[#14332a]'
                   : isDark
-                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/85 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
-                  : 'border-[#14332a]/30 bg-[#f4efe6]/90 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/95 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
+                  : 'border-[#14332a]/30 bg-[#f4efe6]/95 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
               }`}
             >
               {view === 'shop' ? 'HOME' : 'SHOP'}
@@ -294,10 +296,10 @@ export const App: React.FC = () => {
 
             <button
               onClick={() => setMenuOpen(true)}
-              className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border backdrop-blur-md text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
+              className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
                 isDark
-                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/85 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
-                  : 'border-[#14332a]/30 bg-[#f4efe6]/90 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/95 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
+                  : 'border-[#14332a]/30 bg-[#f4efe6]/95 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
               }`}
             >
               MENU
@@ -327,6 +329,16 @@ export const App: React.FC = () => {
         />
       ) : (
         <>
+      {/* =====================================================================
+          SECTION 0: BOUTIQUE GLASS-DOOR ENTRANCE (Zero-Lag Canvas Scroll)
+         ===================================================================== */}
+      <BoutiqueEntrance
+        isDark={isDark}
+        onSkipToShowcase={() =>
+          document.getElementById('top-carousel')?.scrollIntoView({ behavior: 'smooth' })
+        }
+      />
+
       {/* =====================================================================
           SECTION 1: HOME — DIAGONAL BOTTLE CAROUSEL OVER THE STAR SEAL
          ===================================================================== */}
@@ -390,29 +402,11 @@ export const App: React.FC = () => {
           }}
         />
 
-        {/* Left Editorial Manifesto Copy & 10 Collection Progress Dashes */}
+        {/* Left 10 Collection Progress Dashes */}
         <div className="relative z-30 pt-36 sm:pt-36 md:pt-44 px-5 sm:px-6 md:px-12 flex flex-col md:flex-row justify-between items-start pointer-events-none">
-          <div className="max-w-[205px] sm:max-w-xs pointer-events-auto">
-            <p
-              className={`text-[10px] tracking-[0.28em] uppercase font-semibold mb-3 ${
-                isDark ? 'text-[#c9a04e]' : 'text-[#14332a]/85'
-              }`}
-            >
-              COLLECTION N°1 · ONE OUDH
-            </p>
-            <h1
-              className={`font-serif text-2xl md:text-[28px] leading-[1.22] ${
-                isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
-              }`}
-            >
-              Ten extraits distilled
-              <br />
-              from bark, resin{' '}
-              <span className="italic text-[#b9935a] font-normal">&amp; skin.</span>
-            </h1>
-
+          <div className="pointer-events-auto">
             {/* 10 Interactive Progress Dashes */}
-            <div className="mt-6 flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               {FRAGRANCES.map((f, i) => (
                 <button
                   key={f.id}
@@ -870,25 +864,56 @@ export const App: React.FC = () => {
 
         {/* Full-Width Perspective Arc using Zero-Lag SVG Bottle Silhouettes */}
         <div
+          style={{ touchAction: 'pan-y' }}
           onPointerDown={(e) => {
+            if (e.pointerType === 'touch') return;
             otherDragRef.current = {
               active: true,
               startX: e.clientX,
+              startY: e.clientY,
               startOffset: otherArcOffset,
+              moved: false,
             };
           }}
           onPointerMove={(e) => {
-            if (!otherDragRef.current.active) return;
+            if (e.pointerType === 'touch' || !otherDragRef.current.active) return;
             const dx = e.clientX - otherDragRef.current.startX;
+            if (Math.abs(dx) > 6) otherDragRef.current.moved = true;
             setOtherArcOffset(otherDragRef.current.startOffset + dx / 220);
           }}
           onPointerUp={() => {
             otherDragRef.current.active = false;
           }}
+          onPointerCancel={() => {
+            otherDragRef.current.active = false;
+          }}
           onPointerLeave={() => {
             otherDragRef.current.active = false;
           }}
-          className="relative w-full h-[500px] flex items-center justify-center cursor-grab active:cursor-grabbing overflow-hidden"
+          onTouchStart={(e) => {
+            if (e.touches.length !== 1) return;
+            otherDragRef.current = {
+              active: true,
+              startX: e.touches[0].clientX,
+              startY: e.touches[0].clientY,
+              startOffset: otherArcOffset,
+              moved: false,
+            };
+          }}
+          onTouchMove={(e) => {
+            if (!otherDragRef.current.active || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - otherDragRef.current.startX;
+            const dy = e.touches[0].clientY - otherDragRef.current.startY;
+            if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+              otherDragRef.current.moved = true;
+              setOtherArcOffset(otherDragRef.current.startOffset + dx / 180);
+            }
+          }}
+          onTouchEnd={() => {
+            otherDragRef.current.active = false;
+            setOtherArcOffset((prev) => Math.round(prev));
+          }}
+          className="relative w-full h-[460px] sm:h-[500px] flex items-center justify-center cursor-grab active:cursor-grabbing overflow-hidden select-none"
         >
           {[-3, -2, -1, 0, 1, 2, 3].map((slot) => {
             const shifted = slot + (otherArcOffset % 1);
@@ -899,7 +924,7 @@ export const App: React.FC = () => {
             const frag = FRAGRANCES[fragIndex];
             const isCenterYours = slot === 0 && Math.abs(otherArcOffset % 1) < 0.35;
 
-            const x = shifted * 265;
+            const x = shifted * (isMobile ? 215 : 265);
             const y = -Math.pow(shifted, 2) * 14 + 28;
             const scale = 1 - Math.abs(shifted) * 0.08 + (Math.abs(shifted) > 1.5 ? 0.14 : 0);
             const rotateY = shifted * -14;
@@ -909,6 +934,7 @@ export const App: React.FC = () => {
               <div
                 key={`${slot}-${frag.id}`}
                 onClick={() => {
+                  if (otherDragRef.current.moved) return;
                   selectFragrance(fragIndex);
                   setOtherArcOffset(0);
                   setProductModalFrag(frag);

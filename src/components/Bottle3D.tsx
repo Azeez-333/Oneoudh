@@ -14,9 +14,88 @@ interface Bottle3DProps {
   className?: string;
 }
 
-// Cache procedural textures so they are only generated once per key
 const capTextureCache = new Map<string, THREE.CanvasTexture>();
 const labelTextureCache = new Map<string, THREE.CanvasTexture>();
+
+function createStudioEnvMap(renderer: THREE.WebGLRenderer): THREE.Texture {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color('#1a2621');
+
+  // Overhead warm ivory softbox
+  const topPanel = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 14),
+    new THREE.MeshBasicMaterial({ color: '#fff8ec', side: THREE.DoubleSide })
+  );
+  topPanel.position.set(0, 7, 0);
+  topPanel.rotation.x = Math.PI / 2;
+  envScene.add(topPanel);
+
+  // Left golden-ivory vertical strip light (creates crisp glass rim highlight)
+  const leftStrip = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.2, 12),
+    new THREE.MeshBasicMaterial({ color: '#ffe6bd', side: THREE.DoubleSide })
+  );
+  leftStrip.position.set(-6.5, 1, 2.5);
+  leftStrip.lookAt(0, 0, 0);
+  envScene.add(leftStrip);
+
+  // Right cool-ivory fill strip
+  const rightStrip = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.6, 11),
+    new THREE.MeshBasicMaterial({ color: '#f3efe6', side: THREE.DoubleSide })
+  );
+  rightStrip.position.set(6.5, 0.5, 2.0);
+  rightStrip.lookAt(0, 0, 0);
+  envScene.add(rightStrip);
+
+  // Subtle emerald-tinted floor bounce
+  const floorPanel = new THREE.Mesh(
+    new THREE.PlaneGeometry(16, 16),
+    new THREE.MeshBasicMaterial({ color: '#14332a', side: THREE.DoubleSide })
+  );
+  floorPanel.position.set(0, -6, 0);
+  floorPanel.rotation.x = -Math.PI / 2;
+  envScene.add(floorPanel);
+
+  const renderTarget = pmrem.fromScene(envScene, 0.04);
+  pmrem.dispose();
+  return renderTarget.texture;
+}
+
+function createRoundedRectShape(w: number, h: number, r: number): THREE.Shape {
+  const shape = new THREE.Shape();
+  const hw = w / 2;
+  const hh = h / 2;
+  shape.moveTo(-hw + r, -hh);
+  shape.lineTo(hw - r, -hh);
+  shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+  shape.lineTo(hw, hh - r);
+  shape.quadraticCurveTo(hw, hh, hw - r, hh);
+  shape.lineTo(-hw + r, hh);
+  shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+  shape.lineTo(-hw, -hh + r);
+  shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+  return shape;
+}
+
+function createOctagonShape(w: number, h: number, chamfer: number): THREE.Shape {
+  const shape = new THREE.Shape();
+  const hw = w / 2;
+  const hh = h / 2;
+  shape.moveTo(-hw + chamfer, -hh);
+  shape.lineTo(hw - chamfer, -hh);
+  shape.lineTo(hw, -hh + chamfer);
+  shape.lineTo(hw, hh - chamfer);
+  shape.lineTo(hw - chamfer, hh);
+  shape.lineTo(-hw + chamfer, hh);
+  shape.lineTo(-hw, hh - chamfer);
+  shape.lineTo(-hw, -hh + chamfer);
+  shape.closePath();
+  return shape;
+}
 
 function createProceduralCapTexture(style: Fragrance['capStyle']): THREE.CanvasTexture {
   if (capTextureCache.has(style)) {
@@ -35,7 +114,6 @@ function createProceduralCapTexture(style: Fragrance['capStyle']): THREE.CanvasT
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
 
-    // Fine wood grain fibers
     for (let i = 0; i < 160; i++) {
       const y = (i / 160) * 512;
       ctx.strokeStyle = i % 3 === 0 ? 'rgba(32, 16, 6, 0.36)' : 'rgba(148, 102, 66, 0.2)';
@@ -49,31 +127,29 @@ function createProceduralCapTexture(style: Fragrance['capStyle']): THREE.CanvasT
       ctx.stroke();
     }
   } else if (style === 'travertine-block') {
-    ctx.fillStyle = '#ddd0bc';
+    ctx.fillStyle = '#e5dac7';
     ctx.fillRect(0, 0, 512, 512);
-    // Stone strata & pores
     for (let i = 0; i < 90; i++) {
       const y = Math.random() * 512;
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(182, 162, 134, 0.35)' : 'rgba(245, 238, 226, 0.4)';
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(182, 162, 134, 0.35)' : 'rgba(248, 242, 232, 0.45)';
       ctx.fillRect(0, y, 512, 2 + Math.random() * 6);
     }
     for (let i = 0; i < 240; i++) {
-      ctx.fillStyle = 'rgba(130, 110, 88, 0.25)';
+      ctx.fillStyle = 'rgba(130, 110, 88, 0.22)';
       ctx.fillRect(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 8, 1 + Math.random() * 3);
     }
   } else if (style === 'ebony-tall' || style === 'smoked-cylinder') {
     const grad = ctx.createLinearGradient(0, 0, 512, 512);
-    grad.addColorStop(0, '#1e1918');
-    grad.addColorStop(0.5, '#120e0e');
-    grad.addColorStop(1, '#292220');
+    grad.addColorStop(0, '#182b24');
+    grad.addColorStop(0.5, '#0f1c17');
+    grad.addColorStop(1, '#20382f');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
     for (let i = 0; i < 80; i++) {
-      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillStyle = 'rgba(201,160,78,0.04)';
       ctx.fillRect(0, i * 6, 512, 1);
     }
   } else {
-    // brushed-gold
     const grad = ctx.createLinearGradient(0, 0, 512, 0);
     grad.addColorStop(0, '#c89d4c');
     grad.addColorStop(0.5, '#ebd08e');
@@ -89,7 +165,7 @@ function createProceduralCapTexture(style: Fragrance['capStyle']): THREE.CanvasT
 }
 
 function createLabelTexture(fragrance: Fragrance, engraving = ''): THREE.CanvasTexture {
-  const cacheKey = `${fragrance.id}__${engraving}`;
+  const cacheKey = `${fragrance.id}__${engraving}__v2`;
   if (labelTextureCache.has(cacheKey)) {
     return labelTextureCache.get(cacheKey)!;
   }
@@ -102,61 +178,56 @@ function createLabelTexture(fragrance: Fragrance, engraving = ''): THREE.CanvasT
   const palettes = {
     'amber-gold': {
       bg: '#ca8948',
-      borderOuter: '#e8d2b0',
-      borderInner: '#784419',
-      textMain: '#38190b',
-      textSub: '#572a13',
+      borderOuter: '#f2dec0',
+      borderInner: '#5e3310',
+      textMain: '#2b1307',
+      textSub: '#4a240e',
     },
     'cream-classic': {
-      bg: '#efe5d6',
-      borderOuter: '#c9b69c',
-      borderInner: '#8a7356',
-      textMain: '#2b1416',
-      textSub: '#6a5244',
+      bg: '#f5efe4',
+      borderOuter: '#b9935a',
+      borderInner: '#14332a',
+      textMain: '#14332a',
+      textSub: '#5a6e66',
     },
     'ebony-noir': {
-      bg: '#191313',
+      bg: '#10241d',
       borderOuter: '#c9a04e',
       borderInner: '#8c6928',
-      textMain: '#f2e6d8',
+      textMain: '#f5efe4',
       textSub: '#c9a04e',
     },
     'oxblood-velvet': {
-      bg: '#521518',
+      bg: '#16352c',
       borderOuter: '#d4ab5c',
       borderInner: '#9e7732',
-      textMain: '#f5eadf',
+      textMain: '#f5efe4',
       textSub: '#dfb970',
     },
   };
 
   const p = palettes[fragrance.labelStyle];
 
-  // Background paper stock
   ctx.fillStyle = p.bg;
   ctx.fillRect(0, 0, 768, 640);
 
-  // Subtle paper grain
-  for (let i = 0; i < 600; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.025)';
+  for (let i = 0; i < 500; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.02)';
     ctx.fillRect(Math.random() * 768, Math.random() * 640, 3, 3);
   }
 
-  // Outer frame
   ctx.strokeStyle = p.borderOuter;
   ctx.lineWidth = 10;
   ctx.strokeRect(24, 24, 720, 592);
 
-  // Inner hairline frame
   ctx.strokeStyle = p.borderInner;
   ctx.lineWidth = 3;
   ctx.strokeRect(44, 44, 680, 552);
 
   ctx.textAlign = 'center';
 
-  // Brand header
   ctx.fillStyle = p.textMain;
-  ctx.font = '600 26px Manrope, sans-serif';
+  ctx.font = '600 25px Manrope, sans-serif';
   ctx.letterSpacing = '8px';
   ctx.fillText('ONE OUDH · ÉCORCE', 384, 125);
 
@@ -165,7 +236,6 @@ function createLabelTexture(fragrance: Fragrance, engraving = ''): THREE.CanvasT
   ctx.letterSpacing = '4px';
   ctx.fillText('MAISON DE PARFUM — KANNAUJ · INDIA', 384, 160);
 
-  // Perfume Name
   ctx.fillStyle = p.textMain;
   ctx.font = 'italic 500 84px Fraunces, Georgia, serif';
   ctx.letterSpacing = '0px';
@@ -179,7 +249,6 @@ function createLabelTexture(fragrance: Fragrance, engraving = ''): THREE.CanvasT
     ctx.fillText(`✦ ${engraving.toUpperCase()} ✦`, 384, 435);
   }
 
-  // Divider line
   ctx.strokeStyle = p.borderInner;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -187,7 +256,6 @@ function createLabelTexture(fragrance: Fragrance, engraving = ''): THREE.CanvasT
   ctx.lineTo(628, 475);
   ctx.stroke();
 
-  // Footer details
   ctx.fillStyle = p.textSub;
   ctx.font = '600 18px Manrope, sans-serif';
   ctx.letterSpacing = '3px';
@@ -235,7 +303,7 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, width / height, 0.1, 100);
-    camera.position.set(0, 0.15, 6.2);
+    camera.position.set(0, 0.14, 7.0);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -243,203 +311,366 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
       powerPreference: 'high-performance',
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.22;
+    renderer.toneMappingExposure = 1.25;
+
+    const envTexture = createStudioEnvMap(renderer);
+    scene.environment = envTexture;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // Studio Lighting for Glass & Liquid
-    const ambientLight = new THREE.AmbientLight('#fff6ec', 1.55);
+    // Studio Lighting for Faceted Crystal & Brushed Gold
+    const ambientLight = new THREE.AmbientLight('#fff8ee', 1.15);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight('#fff8ee', 3.4);
-    keyLight.position.set(4, 6, 5);
+    const keyLight = new THREE.DirectionalLight('#fff8ed', 2.8);
+    keyLight.position.set(4.5, 6.5, 5.5);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight('#ffb980', 2.4);
-    rimLight.position.set(-5, 3, -3);
+    const rimLight = new THREE.DirectionalLight('#ffd79a', 2.4);
+    rimLight.position.set(-5.5, 3.5, -3.5);
     scene.add(rimLight);
 
-    const bottomBounce = new THREE.PointLight(fragrance.liquidColor, 2.2, 8);
-    bottomBounce.position.set(0, -2.2, 1.5);
+    const bottomBounce = new THREE.PointLight(fragrance.liquidColor, 2.4, 9);
+    bottomBounce.position.set(0, -2.1, 1.8);
     scene.add(bottomBounce);
 
     const bottleGroup = new THREE.Group();
     groupRef.current = bottleGroup;
     scene.add(bottleGroup);
 
-    // Build Procedural Bottle Silhouette
     const glassMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(fragrance.glassTint),
       transparent: true,
-      opacity: 0.42,
-      roughness: 0.06,
-      metalness: 0.02,
-      reflectivity: 0.95,
+      opacity: 0.44,
+      roughness: 0.05,
+      metalness: 0.04,
+      reflectivity: 1.0,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.04,
-      ior: 1.52,
+      clearcoatRoughness: 0.03,
+      ior: 1.54,
+      envMapIntensity: 1.45,
+    });
+
+    const heavyBaseMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(fragrance.glassTint),
+      transparent: true,
+      opacity: 0.62,
+      roughness: 0.06,
+      metalness: 0.05,
+      clearcoat: 1.0,
+      ior: 1.56,
+      envMapIntensity: 1.6,
     });
 
     const liquidMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(fragrance.liquidColor),
       transparent: true,
-      opacity: 0.88,
-      roughness: 0.12,
-      metalness: 0.05,
-      clearcoat: 0.6,
+      opacity: 0.9,
+      roughness: 0.1,
+      metalness: 0.06,
+      clearcoat: 0.75,
+      envMapIntensity: 1.1,
+    });
+
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: '#cfa65a',
+      metalness: 0.94,
+      roughness: 0.16,
+      envMapIntensity: 1.5,
+    });
+
+    const emeraldEnamelMat = new THREE.MeshStandardMaterial({
+      color: '#14332a',
+      metalness: 0.35,
+      roughness: 0.25,
+      envMapIntensity: 1.2,
     });
 
     let bodyGeo: THREE.BufferGeometry;
     let liquidGeo: THREE.BufferGeometry;
+    let baseGeo: THREE.BufferGeometry;
     let labelZ = 0.78;
     let neckY = 0.95;
 
     if (fragrance.bottleShape === 'amphora') {
-      // Rounded organic flacon like Cuir Brûlé in screenshot 01 & 02
       const points: THREE.Vector2[] = [];
       const liqPoints: THREE.Vector2[] = [];
-      const steps = 36;
+      const steps = 40;
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
-        const y = -1.15 + t * 2.05;
-        // Rounded amphora curve
-        let r = Math.sin(Math.pow(t, 0.78) * Math.PI) * 1.06 + 0.18;
-        if (t < 0.08) r = THREE.MathUtils.lerp(0.58, r, t / 0.08);
-        if (t > 0.92) r = THREE.MathUtils.lerp(r, 0.24, (t - 0.92) / 0.08);
+        const y = -1.12 + t * 2.04;
+        let r = Math.sin(Math.pow(t, 0.74) * Math.PI) * 1.04 + 0.18;
+        if (t < 0.1) r = THREE.MathUtils.lerp(0.62, r, t / 0.1);
+        if (t > 0.9) r = THREE.MathUtils.lerp(r, 0.26, (t - 0.9) / 0.1);
         points.push(new THREE.Vector2(r, y));
-        if (t <= 0.86) {
-          liqPoints.push(new THREE.Vector2(r * 0.88, y * 0.92 - 0.04));
+        if (t <= 0.85) {
+          liqPoints.push(new THREE.Vector2(r * 0.88, y * 0.9 - 0.02));
         }
       }
       bodyGeo = new THREE.LatheGeometry(points, 48);
       liquidGeo = new THREE.LatheGeometry(liqPoints, 40);
-      // Slight front-to-back flattening for luxury flacon silhouette
       bodyGeo.scale(1.04, 1, 0.72);
-      liquidGeo.scale(1.02, 1, 0.69);
-      labelZ = 0.85;
-      neckY = 0.95;
-    } else if (fragrance.bottleShape === 'cube') {
-      // Wide architectural glass cube like Figue Blanche & Fleur de Lait
-      bodyGeo = new THREE.BoxGeometry(1.92, 1.85, 1.15, 6, 6, 6);
-      liquidGeo = new THREE.BoxGeometry(1.68, 1.52, 0.96);
-      labelZ = 0.59;
+      liquidGeo.scale(1.01, 1, 0.69);
+
+      baseGeo = new THREE.CylinderGeometry(0.66, 0.58, 0.18, 40);
+      baseGeo.scale(1.04, 1, 0.72);
+      labelZ = 0.86;
       neckY = 0.94;
+    } else if (fragrance.bottleShape === 'cube') {
+      // Chamfered architectural monolith using ExtrudeGeometry
+      const outerShape = createRoundedRectShape(1.76, 1.72, 0.18);
+      bodyGeo = new THREE.ExtrudeGeometry(outerShape, {
+        depth: 0.92,
+        bevelEnabled: true,
+        bevelThickness: 0.11,
+        bevelSize: 0.1,
+        bevelSegments: 4,
+      });
+      bodyGeo.center();
+
+      const innerShape = createRoundedRectShape(1.52, 1.44, 0.14);
+      liquidGeo = new THREE.ExtrudeGeometry(innerShape, {
+        depth: 0.76,
+        bevelEnabled: true,
+        bevelThickness: 0.06,
+        bevelSize: 0.06,
+        bevelSegments: 2,
+      });
+      liquidGeo.center();
+
+      const heelShape = createRoundedRectShape(1.66, 0.2, 0.08);
+      baseGeo = new THREE.ExtrudeGeometry(heelShape, {
+        depth: 0.84,
+        bevelEnabled: true,
+        bevelThickness: 0.06,
+        bevelSize: 0.06,
+        bevelSegments: 2,
+      });
+      baseGeo.center();
+
+      labelZ = 0.58;
+      neckY = 0.96;
     } else if (fragrance.bottleShape === 'column') {
-      // Cylindrical apothecary column like Vétiver Sable
-      bodyGeo = new THREE.CylinderGeometry(0.84, 0.82, 2.05, 42);
-      liquidGeo = new THREE.CylinderGeometry(0.74, 0.72, 1.72, 36);
-      labelZ = 0.85;
-      neckY = 1.04;
+      // Fluted architectural column (18 crisp vertical ribs)
+      bodyGeo = new THREE.CylinderGeometry(0.84, 0.8, 2.02, 48);
+      liquidGeo = new THREE.CylinderGeometry(0.73, 0.7, 1.66, 36);
+      baseGeo = new THREE.CylinderGeometry(0.88, 0.82, 0.2, 48);
+
+      // Add vertical architectural glass flutes around column
+      for (let f = 0; f < 16; f++) {
+        const ang = (f / 16) * Math.PI * 2;
+        const fluteGeo = new THREE.CylinderGeometry(0.055, 0.055, 1.88, 10);
+        const fluteMesh = new THREE.Mesh(fluteGeo, glassMat);
+        fluteMesh.position.set(Math.sin(ang) * 0.81, -0.02, Math.cos(ang) * 0.81);
+        // Leave front center clear for the plaque label
+        if (Math.abs(Math.sin(ang)) > 0.36 || Math.cos(ang) < 0) {
+          bottleGroup.add(fluteMesh);
+        }
+      }
+
+      labelZ = 0.86;
+      neckY = 1.03;
     } else if (fragrance.bottleShape === 'faceted') {
-      // Tall rectangular monolithic flacon like Rose Ébène
-      bodyGeo = new THREE.BoxGeometry(1.38, 2.15, 0.95, 4, 4, 4);
-      liquidGeo = new THREE.BoxGeometry(1.16, 1.82, 0.78);
-      labelZ = 0.49;
-      neckY = 1.09;
+      // Emerald-cut octagonal crystal monolith
+      const octShape = createOctagonShape(1.36, 2.02, 0.26);
+      bodyGeo = new THREE.ExtrudeGeometry(octShape, {
+        depth: 0.84,
+        bevelEnabled: true,
+        bevelThickness: 0.1,
+        bevelSize: 0.1,
+        bevelSegments: 2,
+      });
+      bodyGeo.center();
+
+      const octLiq = createOctagonShape(1.14, 1.72, 0.2);
+      liquidGeo = new THREE.ExtrudeGeometry(octLiq, {
+        depth: 0.68,
+        bevelEnabled: true,
+        bevelThickness: 0.05,
+        bevelSize: 0.05,
+        bevelSegments: 2,
+      });
+      liquidGeo.center();
+
+      const heelOct = createOctagonShape(1.28, 0.2, 0.18);
+      baseGeo = new THREE.ExtrudeGeometry(heelOct, {
+        depth: 0.78,
+        bevelEnabled: true,
+        bevelThickness: 0.05,
+        bevelSize: 0.05,
+        bevelSegments: 2,
+      });
+      baseGeo.center();
+
+      labelZ = 0.54;
+      neckY = 1.1;
     } else {
-      // Decanter ('decanter') like Oud Fumée
-      bodyGeo = new THREE.CylinderGeometry(0.95, 0.78, 1.98, 8);
-      liquidGeo = new THREE.CylinderGeometry(0.82, 0.66, 1.66, 8);
-      labelZ = 0.89;
+      // Decanter: 10-sided Kannauj heritage decanter with stepped shoulder
+      bodyGeo = new THREE.CylinderGeometry(0.96, 0.76, 1.98, 10);
+      liquidGeo = new THREE.CylinderGeometry(0.83, 0.65, 1.62, 10);
+      baseGeo = new THREE.CylinderGeometry(0.8, 0.7, 0.22, 10);
+      labelZ = 0.9;
       neckY = 1.01;
     }
 
     const liquidMesh = new THREE.Mesh(liquidGeo, liquidMat);
-    liquidMesh.position.y = -0.08;
+    liquidMesh.position.y = -0.06;
     bottleGroup.add(liquidMesh);
 
     const bodyMesh = new THREE.Mesh(bodyGeo, glassMat);
     bottleGroup.add(bodyMesh);
 
-    // Internal glass atomizer dip tube
-    const tubeGeo = new THREE.CylinderGeometry(0.022, 0.018, 1.95, 12);
+    const baseMesh = new THREE.Mesh(baseGeo, heavyBaseMat);
+    baseMesh.position.y = -0.98;
+    bottleGroup.add(baseMesh);
+
+    // Internal glass atomizer dip tube + subtle curve
+    const tubeGeo = new THREE.CylinderGeometry(0.02, 0.016, 1.92, 12);
     const tubeMat = new THREE.MeshPhysicalMaterial({
       color: '#ffffff',
       transparent: true,
-      opacity: 0.45,
-      roughness: 0.1,
+      opacity: 0.5,
+      roughness: 0.08,
     });
     const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
-    tubeMesh.position.set(0.05, -0.02, 0);
+    tubeMesh.position.set(0.04, -0.02, 0);
     bottleGroup.add(tubeMesh);
 
-    // Neck & Gold Collar
-    const glassNeckGeo = new THREE.CylinderGeometry(0.24, 0.27, 0.22, 32);
-    const glassNeck = new THREE.Mesh(glassNeckGeo, glassMat);
-    glassNeck.position.y = neckY + 0.08;
+    // Sculpted Shoulder Ring + Stepped Gold Collar + Emerald Enamel Inlay
+    const shoulderRing = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36, 0.44, 0.08, 32),
+      goldMat
+    );
+    shoulderRing.position.y = neckY - 0.01;
+    bottleGroup.add(shoulderRing);
+
+    const glassNeck = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.24, 0.28, 0.22, 32),
+      glassMat
+    );
+    glassNeck.position.y = neckY + 0.1;
     bottleGroup.add(glassNeck);
 
-    const goldCollarGeo = new THREE.CylinderGeometry(0.255, 0.255, 0.18, 32);
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: '#d4a94e',
-      metalness: 0.92,
-      roughness: 0.18,
-    });
-    const goldCollar = new THREE.Mesh(goldCollarGeo, goldMat);
-    goldCollar.position.y = neckY + 0.24;
+    const goldCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.265, 0.265, 0.22, 32),
+      goldMat
+    );
+    goldCollar.position.y = neckY + 0.26;
     bottleGroup.add(goldCollar);
 
-    // Dark ring accent on collar
-    const darkRingGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.045, 32);
-    const darkRingMat = new THREE.MeshStandardMaterial({
-      color: '#24140e',
-      metalness: 0.5,
-      roughness: 0.4,
-    });
-    const darkRing = new THREE.Mesh(darkRingGeo, darkRingMat);
-    darkRing.position.y = neckY + 0.24;
-    bottleGroup.add(darkRing);
+    const emeraldRing = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.273, 0.273, 0.055, 32),
+      emeraldEnamelMat
+    );
+    emeraldRing.position.y = neckY + 0.26;
+    bottleGroup.add(emeraldRing);
 
     // Cap Geometry based on CapStyle
     const capTex = createProceduralCapTexture(fragrance.capStyle);
     const capMat = new THREE.MeshStandardMaterial({
       map: capTex,
-      roughness: fragrance.capStyle === 'brushed-gold' ? 0.22 : 0.42,
-      metalness: fragrance.capStyle === 'brushed-gold' ? 0.85 : 0.08,
+      roughness: fragrance.capStyle === 'brushed-gold' ? 0.18 : 0.36,
+      metalness: fragrance.capStyle === 'brushed-gold' ? 0.9 : 0.12,
+      envMapIntensity: 1.35,
     });
 
-    let capMesh: THREE.Mesh;
     if (fragrance.capStyle === 'walnut-sphere') {
-      const capGeo = new THREE.SphereGeometry(0.56, 42, 42);
-      capMesh = new THREE.Mesh(capGeo, capMat);
+      const capMesh = new THREE.Mesh(new THREE.SphereGeometry(0.54, 42, 42), capMat);
       capMesh.position.y = neckY + 0.82;
-    } else if (fragrance.capStyle === 'travertine-block') {
-      const capGeo = new THREE.BoxGeometry(1.06, 0.78, 0.72);
-      capMesh = new THREE.Mesh(capGeo, capMat);
-      capMesh.position.y = neckY + 0.68;
-    } else if (fragrance.capStyle === 'ebony-tall') {
-      const capGeo = new THREE.BoxGeometry(0.68, 0.86, 0.58);
-      capMesh = new THREE.Mesh(capGeo, capMat);
-      capMesh.position.y = neckY + 0.73;
-    } else if (fragrance.capStyle === 'smoked-cylinder') {
-      const capGeo = new THREE.CylinderGeometry(0.52, 0.52, 0.74, 36);
-      capMesh = new THREE.Mesh(capGeo, capMat);
-      capMesh.position.y = neckY + 0.68;
-    } else {
-      const capGeo = new THREE.SphereGeometry(0.52, 36, 36);
-      capMesh = new THREE.Mesh(capGeo, capMat);
-      capMesh.position.y = neckY + 0.78;
-    }
-    bottleGroup.add(capMesh);
+      bottleGroup.add(capMesh);
 
-    // Front Embossed Label
+      const equator = new THREE.Mesh(
+        new THREE.TorusGeometry(0.54, 0.024, 16, 48),
+        goldMat
+      );
+      equator.rotation.x = Math.PI / 2;
+      equator.position.y = neckY + 0.82;
+      bottleGroup.add(equator);
+    } else if (fragrance.capStyle === 'travertine-block') {
+      const capShape = createRoundedRectShape(0.96, 0.72, 0.08);
+      const capGeo = new THREE.ExtrudeGeometry(capShape, {
+        depth: 0.62,
+        bevelEnabled: true,
+        bevelThickness: 0.06,
+        bevelSize: 0.06,
+        bevelSegments: 3,
+      });
+      capGeo.center();
+      const capMesh = new THREE.Mesh(capGeo, capMat);
+      capMesh.position.y = neckY + 0.72;
+      bottleGroup.add(capMesh);
+
+      const capTrim = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.32, 0.32, 0.06, 32),
+        goldMat
+      );
+      capTrim.position.y = neckY + 0.39;
+      bottleGroup.add(capTrim);
+    } else if (fragrance.capStyle === 'ebony-tall') {
+      // Faceted Jewel Stopper inspired by the ONE OUDH logo crown
+      const jewelGeo = new THREE.CylinderGeometry(0.54, 0.34, 0.76, 8);
+      const capMesh = new THREE.Mesh(jewelGeo, capMat);
+      capMesh.position.y = neckY + 0.76;
+      bottleGroup.add(capMesh);
+
+      const crownRim = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.55, 0.55, 0.05, 8),
+        goldMat
+      );
+      crownRim.position.y = neckY + 1.12;
+      bottleGroup.add(crownRim);
+    } else if (fragrance.capStyle === 'smoked-cylinder') {
+      const capMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.48, 0.74, 36),
+        capMat
+      );
+      capMesh.position.y = neckY + 0.72;
+      bottleGroup.add(capMesh);
+
+      const topDisc = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.51, 0.51, 0.05, 36),
+        goldMat
+      );
+      topDisc.position.y = neckY + 1.09;
+      bottleGroup.add(topDisc);
+    } else {
+      // Brushed-gold faceted crown with emerald cabochon inset
+      const crownGeo = new THREE.CylinderGeometry(0.5, 0.36, 0.68, 12);
+      const capMesh = new THREE.Mesh(crownGeo, capMat);
+      capMesh.position.y = neckY + 0.72;
+      bottleGroup.add(capMesh);
+
+      const cabochon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 24, 16),
+        emeraldEnamelMat
+      );
+      cabochon.scale.set(1, 0.55, 1);
+      cabochon.position.y = neckY + 1.06;
+      bottleGroup.add(cabochon);
+    }
+
+    // Inlaid Metallic Plaque Backing + Embossed Label
+    const plaqueBacking = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 0.82, 0.025),
+      goldMat
+    );
+    plaqueBacking.position.set(0, -0.08, labelZ - 0.01);
+    bottleGroup.add(plaqueBacking);
+
     const labelTex = createLabelTexture(fragrance, engraving);
     const labelMat = new THREE.MeshStandardMaterial({
       map: labelTex,
-      roughness: 0.48,
-      metalness: 0.06,
+      roughness: 0.42,
+      metalness: 0.08,
     });
-
-    const labelGeo = new THREE.PlaneGeometry(0.96, 0.78);
-    const labelMesh = new THREE.Mesh(labelGeo, labelMat);
-    labelMesh.position.set(0, -0.1, labelZ);
+    const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.77), labelMat);
+    labelMesh.position.set(0, -0.08, labelZ + 0.005);
     bottleGroup.add(labelMesh);
 
-    // Center entire bottle vertically
-    bottleGroup.position.y = -0.35;
+    bottleGroup.position.y = -0.45;
 
     let animId = 0;
     let isVisible = true;
@@ -451,12 +682,12 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
       const t = clock.getElapsedTime();
 
       if (groupRef.current) {
-        const floatY = Math.sin(t * 1.4) * 0.035;
-        groupRef.current.position.y = -0.35 + floatY;
+        const floatY = Math.sin(t * 1.4) * 0.032;
+        groupRef.current.position.y = -0.45 + floatY;
 
         groupRef.current.rotation.y = THREE.MathUtils.lerp(
           groupRef.current.rotation.y,
-          targetRotRef.current.y + Math.sin(t * 0.7) * 0.04,
+          targetRotRef.current.y + Math.sin(t * 0.7) * 0.045,
           0.09
         );
         groupRef.current.rotation.x = THREE.MathUtils.lerp(
@@ -474,7 +705,6 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
       renderer.render(scene, camera);
     };
 
-    // Pause WebGL rendering whenever this bottle is off-screen to prevent lag
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
@@ -492,7 +722,6 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
     );
     observer.observe(container);
 
-    // Render initial frame immediately, then let observer manage loop
     renderer.render(scene, camera);
     animate();
 
@@ -511,6 +740,7 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
       observer.disconnect();
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animId);
+      envTexture.dispose();
       renderer.dispose();
     };
   }, [fragrance, engraving]);
@@ -520,14 +750,19 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
     dragRef.current.active = true;
     dragRef.current.startX = e.clientX;
     dragRef.current.startY = e.clientY;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture is unsupported
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!interactive || !dragRef.current.active) return;
-    const dx = (e.clientX - dragRef.current.startX) * 0.012;
-    const dy = (e.clientY - dragRef.current.startY) * 0.006;
+    const dx = (e.clientX - dragRef.current.startX) * 0.014;
+    const dy = (e.clientY - dragRef.current.startY) * 0.007;
     dragRef.current.extraY += dx;
-    dragRef.current.extraX = Math.max(-0.35, Math.min(0.35, dragRef.current.extraX + dy));
+    dragRef.current.extraX = Math.max(-0.38, Math.min(0.38, dragRef.current.extraX + dy));
     dragRef.current.startX = e.clientX;
     dragRef.current.startY = e.clientY;
     targetRotRef.current.y = rotationY + dragRef.current.extraY;
@@ -539,10 +774,10 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
   };
 
   const dimensions = {
-    sm: 'w-[190px] h-[250px]',
-    md: 'w-[260px] h-[340px]',
-    lg: 'w-[340px] h-[440px]',
-    hero: 'w-[380px] h-[490px] md:w-[440px] md:h-[550px]',
+    sm: 'w-[180px] h-[240px]',
+    md: 'w-[240px] h-[320px] sm:w-[260px] sm:h-[340px]',
+    lg: 'w-[280px] h-[360px] sm:w-[340px] sm:h-[440px]',
+    hero: 'w-[290px] h-[375px] sm:w-[360px] sm:h-[465px] md:w-[440px] md:h-[550px]',
   }[size];
 
   return (
@@ -551,8 +786,10 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onClick={onSpray}
+      style={{ touchAction: interactive ? 'none' : 'auto' }}
       className={`relative select-none ${dimensions} ${
         interactive ? 'cursor-grab active:cursor-grabbing' : ''
       } ${className}`}
@@ -560,4 +797,3 @@ export const Bottle3D: React.FC<Bottle3DProps> = ({
     />
   );
 };
-

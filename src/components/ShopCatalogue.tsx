@@ -44,7 +44,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
       {/* Top Breadcrumb & Editorial Heading */}
       <div
         className={`flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-12 border-b ${
-          isDark ? 'border-[#c9a04e]/20' : 'border-[#6e1a1e]/15'
+          isDark ? 'border-[#c9a04e]/20' : 'border-[#14332a]/15'
         }`}
       >
         <div>
@@ -53,7 +53,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
             className={`inline-flex items-center gap-2 text-[10.5px] tracking-[0.24em] uppercase font-semibold mb-6 transition-colors cursor-pointer ${
               isDark
                 ? 'text-[#c9a04e] hover:text-[#f3e9df]'
-                : 'text-[#6e1a1e] hover:text-[#b3261e]'
+                : 'text-[#14332a] hover:text-[#b9935a]'
             }`}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -63,19 +63,19 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
           <div className="flex items-baseline gap-4 flex-wrap">
             <h1
               className={`font-display uppercase text-6xl sm:text-8xl leading-[0.86] ${
-                isDark ? 'text-[#f3e9df]' : 'text-[#6e1a1e]'
+                isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
               }`}
             >
               THE OUDH
             </h1>
-            <span className="font-serif italic font-bold text-6xl sm:text-8xl leading-[0.86] text-[#d9483b]">
+            <span className="font-serif italic font-bold text-6xl sm:text-8xl leading-[0.86] text-[#b9935a]">
               catalogue
             </span>
           </div>
 
           <p
             className={`mt-4 max-w-xl text-sm leading-relaxed ${
-              isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+              isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
             }`}
           >
             All ten extraits de parfum macerated in Kannauj &amp; Assam. Click any flacon to
@@ -92,10 +92,10 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                 onClick={() => setFilter(cat)}
                 className={`px-4 py-2 rounded-full text-[10px] tracking-[0.2em] uppercase font-semibold transition-all cursor-pointer ${
                   filter === cat
-                    ? 'bg-[#6e1a1e] text-[#eee4da] shadow-sm'
+                    ? 'bg-[#14332a] text-[#f4efe6] shadow-sm'
                     : isDark
                     ? 'border border-[#c9a04e]/30 text-[#f3e9df] hover:border-[#c9a04e] bg-[#14090e]/60 backdrop-blur-sm'
-                    : 'border border-[#6e1a1e]/25 text-[#2b1416] hover:border-[#6e1a1e]'
+                    : 'border border-[#14332a]/25 text-[#14332a] hover:border-[#14332a]'
                 }`}
               >
                 {cat}
@@ -117,7 +117,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
               className={`group relative rounded-sm border p-6 flex flex-col justify-between transition-all duration-500 hover:-translate-y-1.5 overflow-hidden ${
                 isDark
                   ? 'bg-[#160b10]/75 backdrop-blur-md border-[#c9a04e]/25 hover:border-[#c9a04e]/65 shadow-[0_22px_50px_rgba(0,0,0,0.55)]'
-                  : 'bg-[#f4ece2]/85 border-[#6e1a1e]/18 hover:border-[#6e1a1e]/45 shadow-[0_14px_36px_rgba(43,20,22,0.08)]'
+                  : 'bg-[#f7f3eb]/85 border-[#14332a]/18 hover:border-[#14332a]/45 shadow-[0_14px_36px_rgba(43,20,22,0.08)]'
               }`}
             >
               {/* Subtle Corner Filigree Ticks */}
@@ -128,14 +128,14 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
 
               {/* Top Header Row */}
               <div className="relative z-10 flex items-center justify-between text-[9.5px] tracking-[0.22em] uppercase font-semibold">
-                <span className={isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'}>
+                <span className={isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'}>
                   {frag.number} · {frag.origin}
                 </span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-[8.5px] border ${
                     isDark
                       ? 'border-[#c9a04e]/35 text-[#f3e9df]/90 bg-[#230e14]/70'
-                      : 'border-[#6e1a1e]/25 text-[#6e1a1e] bg-[#eee4da]/80'
+                      : 'border-[#14332a]/25 text-[#14332a] bg-[#f4efe6]/80'
                   }`}
                 >
                   {frag.concentration}
@@ -148,7 +148,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                 className={`relative my-5 pt-6 pb-4 rounded-t-[140px] rounded-b-sm border flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-colors ${
                   isDark
                     ? 'border-[#c9a04e]/20 bg-[#0d0609]/65 group-hover:border-[#c9a04e]/45'
-                    : 'border-[#6e1a1e]/12 bg-[#eadccf]/65 group-hover:border-[#6e1a1e]/30'
+                    : 'border-[#14332a]/12 bg-[#ece5d8]/65 group-hover:border-[#14332a]/30'
                 }`}
               >
                 {/* Warm Scent Aura Glow Behind Bottle */}
@@ -173,7 +173,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                   className={`relative z-10 mt-2 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[9px] tracking-[0.2em] uppercase font-semibold border transition-all cursor-pointer ${
                     isDark
                       ? 'border-[#c9a04e]/45 bg-[#1b0c12]/90 text-[#c9a04e] group-hover:bg-[#c9a04e] group-hover:text-[#14090a]'
-                      : 'border-[#6e1a1e]/30 bg-[#fbf7f2]/90 text-[#6e1a1e] group-hover:bg-[#6e1a1e] group-hover:text-[#eee4da]'
+                      : 'border-[#14332a]/30 bg-[#fbf8f2]/90 text-[#14332a] group-hover:bg-[#14332a] group-hover:text-[#f4efe6]'
                   }`}
                 >
                   <Box className="w-3 h-3" />
@@ -186,18 +186,18 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                 <div className="flex items-baseline justify-between gap-2">
                   <h2
                     onClick={() => onSelect3D(frag)}
-                    className="font-serif italic text-3xl cursor-pointer hover:text-[#d9483b] transition-colors"
+                    className="font-serif italic text-3xl cursor-pointer hover:text-[#b9935a] transition-colors"
                   >
                     {frag.fullName}
                   </h2>
-                  <span className="font-serif text-xl font-semibold text-[#d9483b]">
+                  <span className="font-serif text-xl font-semibold text-[#b9935a]">
                     {formatINR(price)}
                   </span>
                 </div>
 
                 <p
                   className={`text-[10px] tracking-[0.22em] uppercase mt-1 flex items-center gap-1.5 ${
-                    isDark ? 'text-[#c9a04e]/85' : 'text-[#6e1a1e]/80'
+                    isDark ? 'text-[#c9a04e]/85' : 'text-[#14332a]/80'
                   }`}
                 >
                   <Sparkles className="w-2.5 h-2.5" />
@@ -206,7 +206,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
 
                 <p
                   className={`mt-2.5 text-xs leading-relaxed line-clamp-2 ${
-                    isDark ? 'text-[#d8c8b8]/85' : 'text-[#5a4339]'
+                    isDark ? 'text-[#d8c8b8]/85' : 'text-[#3d564d]'
                   }`}
                 >
                   {frag.description}
@@ -220,7 +220,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                       className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-serif italic border ${
                         isDark
                           ? 'border-[#c9a04e]/20 bg-[#221017]/60 text-[#e7d6c4]/85'
-                          : 'border-[#6e1a1e]/15 bg-[#eee4da] text-[#5a4339]'
+                          : 'border-[#14332a]/15 bg-[#f4efe6] text-[#3d564d]'
                       }`}
                     >
                       {note}
@@ -234,7 +234,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                     className={`inline-flex rounded-full p-0.5 border ${
                       isDark
                         ? 'border-[#c9a04e]/30 bg-[#12070c]'
-                        : 'border-[#6e1a1e]/25 bg-[#eee4da]'
+                        : 'border-[#14332a]/25 bg-[#f4efe6]'
                     }`}
                   >
                     {([50, 100] as const).map((ml) => (
@@ -245,7 +245,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
                           sizeMl === ml
                             ? isDark
                               ? 'bg-[#c9a04e] text-[#14090a]'
-                              : 'bg-[#6e1a1e] text-[#eee4da]'
+                              : 'bg-[#14332a] text-[#f4efe6]'
                             : 'opacity-70 hover:opacity-100'
                         }`}
                       >
@@ -256,7 +256,7 @@ export const ShopCatalogue: React.FC<ShopCatalogueProps> = ({
 
                   <button
                     onClick={() => onAddToBag(frag, sizeMl)}
-                    className="flex-1 py-2.5 px-4 rounded-full bg-[#6e1a1e] text-[#eee4da] text-[10px] tracking-[0.2em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                    className="flex-1 py-2.5 px-4 rounded-full bg-[#14332a] text-[#f4efe6] text-[10px] tracking-[0.2em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                     <span>Add to Bag</span>

@@ -82,11 +82,11 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
 
   const gold = '#c9a04e';
   const darkGold = '#9a742b';
-  const oxblood = '#6e1a1e';
-  const ruby = '#b3261e';
+  const emerald = '#14332a';
+  const jewel = isDark ? '#c9a04e' : '#14332a';
 
   return (
-    <div className="pointer-events-auto select-none flex flex-col items-center gap-1.5">
+    <div className="pointer-events-auto select-none flex flex-col items-center gap-1">
       <div
         ref={wheelRef}
         onWheel={handleWheel}
@@ -94,32 +94,36 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        style={{ touchAction: 'none' }}
         title="Rotate mechanical watch wheel to switch perfumes"
-        className="relative w-[156px] h-[156px] sm:w-[172px] sm:h-[172px] rounded-full cursor-grab active:cursor-grabbing flex items-center justify-center"
+        className="relative w-[116px] h-[116px] sm:w-[156px] sm:h-[156px] md:w-[172px] md:h-[172px] rounded-full cursor-grab active:cursor-grabbing flex items-center justify-center"
       >
-        {/* Top Oxblood/Gold Index Marker */}
+        {/* Top Emerald/Gold Index Marker */}
         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
           <div
-            className="w-2.5 h-3 bg-[#b3261e]"
-            style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }}
+            className="w-2.5 h-3"
+            style={{
+              backgroundColor: isDark ? gold : emerald,
+              clipPath: 'polygon(50% 100%, 0 0, 100% 0)',
+            }}
           />
         </div>
 
         <svg
           viewBox="0 0 220 220"
-          className="w-full h-full overflow-visible drop-shadow-[0_10px_24px_rgba(43,20,22,0.14)]"
+          className="w-full h-full overflow-visible drop-shadow-[0_10px_24px_rgba(20,51,42,0.16)]"
         >
           <defs>
-            {/* Light Cream Porcelain Dial vs Dark Cosmos Dial */}
+            {/* Light Ivory Porcelain Dial vs Dark Cosmos Dial */}
             <radialGradient id="watchCaseGrad" cx="50%" cy="45%" r="55%">
-              <stop offset="0%" stopColor={isDark ? '#1a0c10' : '#faf4ec'} />
-              <stop offset="78%" stopColor={isDark ? '#100609' : '#efe5da'} />
-              <stop offset="100%" stopColor={isDark ? '#090304' : '#e2d2c2'} />
+              <stop offset="0%" stopColor={isDark ? '#141f1b' : '#fbf8f2'} />
+              <stop offset="78%" stopColor={isDark ? '#0c1512' : '#f1eadf'} />
+              <stop offset="100%" stopColor={isDark ? '#070d0b' : '#e3d9c8'} />
             </radialGradient>
 
             <linearGradient id="brassGearGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#e6c880" />
-              <stop offset="50%" stopColor="#c9a04e" />
+              <stop offset="50%" stopColor="#b9935a" />
               <stop offset="100%" stopColor="#8d6824" />
             </linearGradient>
           </defs>
@@ -130,7 +134,7 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
             cy="110"
             r="104"
             fill="url(#watchCaseGrad)"
-            stroke={isDark ? 'rgba(201,160,78,0.45)' : 'rgba(110,26,30,0.28)'}
+            stroke={isDark ? 'rgba(201,160,78,0.45)' : 'rgba(20,51,42,0.28)'}
             strokeWidth="1.6"
           />
           <circle
@@ -138,9 +142,9 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
             cy="110"
             r="96"
             fill="none"
-            stroke={isDark ? gold : oxblood}
+            stroke={isDark ? gold : emerald}
             strokeWidth="0.7"
-            strokeOpacity={isDark ? '0.4' : '0.22'}
+            strokeOpacity={isDark ? '0.4' : '0.24'}
           />
 
           {/* 60 Fine Horological Minute Ticks */}
@@ -156,7 +160,7 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
                 y1={110 + Math.sin(a) * r1}
                 x2={110 + Math.cos(a) * r2}
                 y2={110 + Math.sin(a) * r2}
-                stroke={isDark ? gold : oxblood}
+                stroke={isDark ? gold : emerald}
                 strokeWidth={isMajor ? '1.3' : '0.6'}
                 strokeOpacity={isMajor ? '0.65' : '0.28'}
               />
@@ -188,10 +192,12 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
                   fontWeight={isActive ? '700' : '600'}
                   fill={
                     isActive
-                      ? ruby
+                      ? isDark
+                        ? '#e6c880'
+                        : '#b9935a'
                       : isDark
                       ? '#e7d6c4'
-                      : oxblood
+                      : emerald
                   }
                   opacity={isActive ? 1 : 0.6}
                 >
@@ -263,7 +269,7 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
               cy="110"
               r="24"
               fill="none"
-              stroke={isDark ? 'url(#brassGearGrad)' : oxblood}
+              stroke={isDark ? 'url(#brassGearGrad)' : emerald}
               strokeOpacity={isDark ? 1 : 0.45}
               strokeWidth="2.2"
               strokeDasharray="3 2"
@@ -272,25 +278,25 @@ export const WatchRoller: React.FC<WatchRollerProps> = ({
             {/* Oscillating Pointer Arm on Wheel */}
             <polygon
               points="110,48 106.8,61 113.2,61"
-              fill={ruby}
+              fill={jewel}
               stroke="#faf4ec"
               strokeWidth="0.6"
             />
 
-            {/* Center Gold Chaton & Ruby Jewel Pivot */}
+            {/* Center Gold Chaton & Emerald/Gold Jewel Pivot */}
             <circle cx="110" cy="110" r="10.5" fill="url(#brassGearGrad)" />
-            <circle cx="110" cy="110" r="5" fill={ruby} />
-            <circle cx="108.6" cy="108.6" r="1.4" fill="#ffb3ab" opacity="0.85" />
+            <circle cx="110" cy="110" r="5" fill={jewel} />
+            <circle cx="108.6" cy="108.6" r="1.4" fill="#f7ebd2" opacity="0.85" />
           </g>
         </svg>
       </div>
 
       <span
-        className={`text-[9px] tracking-[0.22em] uppercase font-semibold ${
-          isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]/80'
+        className={`text-[8px] sm:text-[9px] tracking-[0.2em] sm:tracking-[0.22em] uppercase font-semibold ${
+          isDark ? 'text-[#c9a04e]' : 'text-[#14332a]/85'
         }`}
       >
-        Rotate Wheel · {fragrances[activeIndex].number}
+        Wheel · {fragrances[activeIndex].number}
       </span>
     </div>
   );

@@ -64,7 +64,17 @@ export const App: React.FC = () => {
   const marqueeRef = useRef<HTMLDivElement>(null);
 
   const homeDragRef = useRef({ active: false, startX: 0, startOffset: 7, moved: false });
+  const touchSwipeRef = useRef({ active: false, startX: 0, startY: 0 });
   const otherDragRef = useRef({ active: false, startX: 0, startOffset: 0 });
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const activeFragrance = FRAGRANCES[activeIndex];
   const isDark = theme === 'dark';
@@ -189,7 +199,7 @@ export const App: React.FC = () => {
       className={`relative min-h-screen transition-colors duration-700 overflow-x-hidden ${
         isDark
           ? 'text-[#f2e6da] selection:bg-[#c9a04e] selection:text-[#14090a]'
-          : 'text-[#2b1416] selection:bg-[#6e1a1e] selection:text-[#eee4da]'
+          : 'text-[#14332a] selection:bg-[#14332a] selection:text-[#f4efe6]'
       }`}
       style={{
         backgroundColor: isDark ? '#070308' : activeFragrance.pageTint,
@@ -200,7 +210,7 @@ export const App: React.FC = () => {
       {/* Floating Custom "VIEW" Cursor Pill */}
       {cursorPill.visible && (
         <div
-          className="fixed z-[90] pointer-events-none -translate-x-1/2 -translate-y-1/2 px-4 py-1.5 rounded-full bg-[#6e1a1e] text-[#eee4da] text-[10px] tracking-[0.25em] uppercase font-semibold shadow-lg transition-transform duration-75"
+          className="fixed z-[90] pointer-events-none -translate-x-1/2 -translate-y-1/2 px-4 py-1.5 rounded-full bg-[#14332a] text-[#f4efe6] text-[10px] tracking-[0.25em] uppercase font-semibold shadow-lg transition-transform duration-75"
           style={{ left: cursorPill.x, top: cursorPill.y }}
         >
           {cursorPill.label}
@@ -208,89 +218,102 @@ export const App: React.FC = () => {
       )}
 
       {/* =====================================================================
-          FIXED TOP HEADER (Light / Dark Toggle)
+          FIXED TOP HEADER (2-Row on Mobile so Logo & Menu Never Squash/Clip)
          ===================================================================== */}
-      <header className="fixed top-0 inset-x-0 z-50 px-6 md:px-10 py-5 flex items-center justify-between pointer-events-none">
-        {/* Left: Light / Dark Screen Toggle */}
-        <div className="flex items-center gap-3 pointer-events-auto">
-          <div
-            className={`inline-flex items-center rounded-full border p-1 shadow-sm backdrop-blur-md transition-colors ${
-              isDark
-                ? 'border-[#c9a04e]/35 bg-[#230e10]/85'
-                : 'border-[#6e1a1e]/25 bg-[#eee4da]/85'
-            }`}
+      <header className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 md:px-10 pt-3 pb-2 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pointer-events-none">
+        {/* Mobile-Only Centered Logo Row */}
+        <div className="flex sm:hidden justify-center w-full pointer-events-none">
+          <button
+            onClick={openHome}
+            className="pointer-events-auto shrink-0 hover:scale-105 transition-transform cursor-pointer"
           >
-            <button
-              onClick={() => setTheme('light')}
-              aria-label="Light mode"
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] tracking-[0.18em] font-semibold uppercase transition-all cursor-pointer ${
-                !isDark
-                  ? 'bg-[#6e1a1e] text-[#eee4da]'
-                  : 'text-[#e7d6c4]/75 hover:text-[#eee4da]'
-              }`}
-            >
-              <Sun className="w-3 h-3" />
-              <span>LIGHT</span>
-            </button>
-            <button
-              onClick={() => setTheme('dark')}
-              aria-label="Dark mode"
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] tracking-[0.18em] font-semibold uppercase transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-[#c9a04e] text-[#1a0a0b]'
-                  : 'text-[#6e1a1e] hover:bg-[#6e1a1e]/10'
-              }`}
-            >
-              <Moon className="w-3 h-3" />
-              <span>DARK</span>
-            </button>
-          </div>
+            <OneOudhLogo isDark={isDark} compact />
+          </button>
         </div>
 
-        {/* Center: Official ONE OUDH Logo */}
-        <button
-          onClick={openHome}
-          className="pointer-events-auto group hover:scale-105 transition-transform cursor-pointer"
-        >
-          <OneOudhLogo isDark={isDark} compact />
-        </button>
+        {/* Controls Row (Mobile: Left Toggle + Right Nav; Desktop: Left Toggle, Center Logo, Right Nav) */}
+        <div className="flex items-center justify-between w-full gap-2">
+          {/* Left: Icon-Only Light / Dark Screen Toggle */}
+          <div className="flex items-center shrink-0 pointer-events-auto">
+            <div
+              className={`inline-flex items-center rounded-full border p-1 shadow-sm backdrop-blur-md transition-colors ${
+                isDark
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/85'
+                  : 'border-[#14332a]/25 bg-[#f4efe6]/90'
+              }`}
+            >
+              <button
+                onClick={() => setTheme('light')}
+                aria-label="Light mode"
+                title="Light mode"
+                className={`w-7 h-7 sm:w-8 sm:h-8 inline-flex items-center justify-center rounded-full transition-all cursor-pointer ${
+                  !isDark
+                    ? 'bg-[#14332a] text-[#f4efe6]'
+                    : 'text-[#e7d6c4]/75 hover:text-[#f4efe6]'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                aria-label="Dark mode"
+                title="Dark mode"
+                className={`w-7 h-7 sm:w-8 sm:h-8 inline-flex items-center justify-center rounded-full transition-all cursor-pointer ${
+                  isDark
+                    ? 'bg-[#c9a04e] text-[#1a0a0b]'
+                    : 'text-[#14332a] hover:bg-[#14332a]/10'
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
 
-        {/* Right: SHOP Pill + MENU Pill + Shopping Bag Circle */}
-        <div className="flex items-center gap-2.5 pointer-events-auto">
+          {/* Desktop Center: Official ONE OUDH Logo */}
           <button
-            onClick={() => (view === 'shop' ? openHome() : openShop())}
-            className={`px-5 py-2.5 rounded-full border backdrop-blur-md text-[10.5px] tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
-              view === 'shop'
-                ? 'bg-[#6e1a1e] text-[#eee4da] border-[#6e1a1e]'
-                : isDark
-                ? 'border-[#c9a04e]/35 bg-[#230e10]/85 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
-                : 'border-[#6e1a1e]/30 bg-[#eee4da]/85 text-[#6e1a1e] hover:bg-[#6e1a1e] hover:text-[#eee4da]'
-            }`}
+            onClick={openHome}
+            className="hidden sm:flex pointer-events-auto shrink-0 group hover:scale-105 transition-transform cursor-pointer"
           >
-            {view === 'shop' ? 'HOME' : 'SHOP'}
+            <OneOudhLogo isDark={isDark} compact />
           </button>
 
-          <button
-            onClick={() => setMenuOpen(true)}
-            className={`px-5 py-2.5 rounded-full border backdrop-blur-md text-[10.5px] tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
-              isDark
-                ? 'border-[#c9a04e]/35 bg-[#230e10]/85 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
-                : 'border-[#6e1a1e]/30 bg-[#eee4da]/85 text-[#6e1a1e] hover:bg-[#6e1a1e] hover:text-[#eee4da]'
-            }`}
-          >
-            MENU
-          </button>
+          {/* Right: SHOP Pill + MENU Pill + Shopping Bag Circle */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 pointer-events-auto">
+            <button
+              onClick={() => (view === 'shop' ? openHome() : openShop())}
+              className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border backdrop-blur-md text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
+                view === 'shop'
+                  ? 'bg-[#14332a] text-[#f4efe6] border-[#14332a]'
+                  : isDark
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/85 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
+                  : 'border-[#14332a]/30 bg-[#f4efe6]/90 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
+              }`}
+            >
+              {view === 'shop' ? 'HOME' : 'SHOP'}
+            </button>
 
-          <button
-            onClick={() => setCartOpen(true)}
-            aria-label="Open shopping bag"
-            className="relative w-10 h-10 rounded-full bg-[#5c161a] text-[#eee4da] flex items-center justify-center hover:bg-[#7b1e23] transition-colors shadow-md cursor-pointer"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#241012] text-[#eee4da] text-[9px] font-bold flex items-center justify-center border border-[#eee4da]/30">
-              {totalCartItems}
-            </span>
-          </button>
+            <button
+              onClick={() => setMenuOpen(true)}
+              className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full border backdrop-blur-md text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.24em] uppercase font-semibold transition-all cursor-pointer ${
+                isDark
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/85 text-[#f3e9df] hover:bg-[#c9a04e] hover:text-[#14090a]'
+                  : 'border-[#14332a]/30 bg-[#f4efe6]/90 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
+              }`}
+            >
+              MENU
+            </button>
+
+            <button
+              onClick={() => setCartOpen(true)}
+              aria-label="Open shopping bag"
+              className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#14332a] text-[#f4efe6] flex items-center justify-center hover:bg-[#1b4438] transition-colors shadow-md cursor-pointer"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#b9935a] text-[#14332a] text-[9px] font-bold flex items-center justify-center border border-[#f4efe6]/40">
+                {totalCartItems}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -309,7 +332,9 @@ export const App: React.FC = () => {
          ===================================================================== */}
       <section
         id="top-carousel"
+        style={{ touchAction: 'pan-y' }}
         onPointerDown={(e) => {
+          if (e.pointerType === 'touch') return;
           homeDragRef.current = {
             active: true,
             startX: e.clientX,
@@ -318,19 +343,43 @@ export const App: React.FC = () => {
           };
         }}
         onPointerMove={(e) => {
-          if (!homeDragRef.current.active) return;
+          if (e.pointerType === 'touch' || !homeDragRef.current.active) return;
           const dx = e.clientX - homeDragRef.current.startX;
           if (Math.abs(dx) > 6) homeDragRef.current.moved = true;
           const nextOffset = homeDragRef.current.startOffset - dx / 260;
           setCarouselOffset(nextOffset);
         }}
-        onPointerUp={() => {
-          if (!homeDragRef.current.active) return;
+        onPointerUp={(e) => {
+          if (e.pointerType === 'touch' || !homeDragRef.current.active) return;
           homeDragRef.current.active = false;
           const snapped = Math.round(carouselOffset);
           selectFragrance(snapped);
         }}
-        className="relative w-full h-screen min-h-[760px] max-h-[1080px] overflow-hidden flex flex-col justify-between select-none"
+        onPointerCancel={() => {
+          homeDragRef.current.active = false;
+        }}
+        onTouchStart={(e) => {
+          if (e.touches.length !== 1) return;
+          touchSwipeRef.current = {
+            active: true,
+            startX: e.touches[0].clientX,
+            startY: e.touches[0].clientY,
+          };
+        }}
+        onTouchEnd={(e) => {
+          if (!touchSwipeRef.current.active || e.changedTouches.length === 0) return;
+          touchSwipeRef.current.active = false;
+          const dx = e.changedTouches[0].clientX - touchSwipeRef.current.startX;
+          const dy = e.changedTouches[0].clientY - touchSwipeRef.current.startY;
+          if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy) * 1.1) {
+            if (dx < 0) {
+              selectFragrance(activeIndex + 1);
+            } else {
+              selectFragrance(activeIndex - 1);
+            }
+          }
+        }}
+        className="relative w-full h-screen min-h-[680px] sm:min-h-[760px] max-h-[1080px] overflow-hidden flex flex-col justify-between select-none"
       >
         <div
           className="pointer-events-none absolute inset-0"
@@ -342,24 +391,24 @@ export const App: React.FC = () => {
         />
 
         {/* Left Editorial Manifesto Copy & 10 Collection Progress Dashes */}
-        <div className="relative z-30 pt-36 md:pt-44 px-6 md:px-12 flex flex-col md:flex-row justify-between items-start pointer-events-none">
-          <div className="max-w-xs pointer-events-auto">
+        <div className="relative z-30 pt-36 sm:pt-36 md:pt-44 px-5 sm:px-6 md:px-12 flex flex-col md:flex-row justify-between items-start pointer-events-none">
+          <div className="max-w-[205px] sm:max-w-xs pointer-events-auto">
             <p
               className={`text-[10px] tracking-[0.28em] uppercase font-semibold mb-3 ${
-                isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]/85'
+                isDark ? 'text-[#c9a04e]' : 'text-[#14332a]/85'
               }`}
             >
               COLLECTION N°1 · ONE OUDH
             </p>
             <h1
               className={`font-serif text-2xl md:text-[28px] leading-[1.22] ${
-                isDark ? 'text-[#f3e9df]' : 'text-[#5c161a]'
+                isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
               }`}
             >
               Ten extraits distilled
               <br />
               from bark, resin{' '}
-              <span className="italic text-[#d9483b] font-normal">&amp; skin.</span>
+              <span className="italic text-[#b9935a] font-normal">&amp; skin.</span>
             </h1>
 
             {/* 10 Interactive Progress Dashes */}
@@ -371,10 +420,10 @@ export const App: React.FC = () => {
                   aria-label={`Select ${f.fullName}`}
                   className={`h-[2px] transition-all duration-300 cursor-pointer ${
                     i === activeIndex
-                      ? 'w-7 bg-[#b3261e]'
+                      ? 'w-7 bg-[#b9935a]'
                       : isDark
                       ? 'w-3.5 bg-[#f3e9df]/25 hover:bg-[#f3e9df]/55'
-                      : 'w-3.5 bg-[#6e1a1e]/20 hover:bg-[#6e1a1e]/45'
+                      : 'w-3.5 bg-[#14332a]/20 hover:bg-[#14332a]/45'
                   }`}
                 />
               ))}
@@ -385,14 +434,14 @@ export const App: React.FC = () => {
           <div className="hidden md:flex flex-col items-end text-right pt-2 pointer-events-auto">
             <span
               className={`text-[10.5px] tracking-[0.26em] uppercase font-semibold ${
-                isDark ? 'text-[#c9a04e]' : 'text-[#5c161a]'
+                isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
               }`}
             >
               KANNAUJ — INDIA
             </span>
             <span
               className={`mt-1.5 text-[12px] font-normal ${
-                isDark ? 'text-[#e7d6c4]/65' : 'text-[#6e1a1e]/65'
+                isDark ? 'text-[#e7d6c4]/65' : 'text-[#14332a]/65'
               }`}
             >
               Rotate watch wheel, drag or use ← → keys
@@ -400,8 +449,8 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom-Right Mechanical Watch Wheel (Unobstructed) */}
-        <div className="absolute bottom-8 right-8 z-30 hidden md:flex">
+        {/* Mechanical Watch Wheel (Top-Right on Mobile, Bottom-Right on Desktop) */}
+        <div className="absolute top-[168px] right-4 sm:top-auto sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-30 flex">
           <WatchRoller
             fragrances={FRAGRANCES}
             activeIndex={activeIndex}
@@ -419,9 +468,11 @@ export const App: React.FC = () => {
 
             if (Math.abs(d) > 2) return null;
 
-            const xOffset = d * 360;
-            const yOffset = -d * 105 + Math.abs(d) * 28 - 25;
-            const scale = d === 0 ? 1.06 : Math.max(0.7, 0.9 - Math.abs(d) * 0.1);
+            const xOffset = d * (isMobile ? 175 : 360);
+            const yOffset = isMobile
+              ? -d * 52 + Math.abs(d) * 14 - 16
+              : -d * 105 + Math.abs(d) * 28 - 25;
+            const scale = d === 0 ? (isMobile ? 0.88 : 1.06) : Math.max(0.62, (isMobile ? 0.72 : 0.9) - Math.abs(d) * 0.1);
             const rotDeg = d * -4;
 
             return (
@@ -492,7 +543,7 @@ export const App: React.FC = () => {
             <div className="relative w-full">
               <span
                 className={`block text-[11px] tracking-[0.28em] font-semibold mb-1 ml-1 ${
-                  isDark ? 'text-[#c9a04e]' : 'text-[#5c161a]'
+                  isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                 }`}
               >
                 {activeFragrance.number}
@@ -500,14 +551,14 @@ export const App: React.FC = () => {
 
               <h2
                 className={`font-display uppercase text-[88px] sm:text-[118px] xl:text-[134px] leading-[0.84] tracking-[-0.02em] select-none ${
-                  isDark ? 'text-[#f3e9df]' : 'text-[#6e1a1e]'
+                  isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
                 }`}
               >
                 {activeFragrance.nameFirst}
               </h2>
 
               <div className="pl-6 sm:pl-14 -mt-2 sm:-mt-4">
-                <span className="font-serif italic font-bold text-[74px] sm:text-[102px] xl:text-[116px] leading-[0.9] text-[#d9483b] block select-none">
+                <span className="font-serif italic font-bold text-[74px] sm:text-[102px] xl:text-[116px] leading-[0.9] text-[#b9935a] block select-none">
                   {activeFragrance.nameSecond}
                 </span>
               </div>
@@ -516,12 +567,12 @@ export const App: React.FC = () => {
             <div className="mt-6 flex items-center gap-4">
               <span
                 className={`w-10 h-[1px] ${
-                  isDark ? 'bg-[#c9a04e]/50' : 'bg-[#6e1a1e]/45'
+                  isDark ? 'bg-[#c9a04e]/50' : 'bg-[#14332a]/45'
                 }`}
               />
               <span
                 className={`text-[10.5px] tracking-[0.26em] uppercase font-semibold ${
-                  isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                  isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                 }`}
               >
                 {activeFragrance.subtitle}
@@ -530,14 +581,14 @@ export const App: React.FC = () => {
 
             <h3
               className={`mt-4 font-serif italic text-2xl sm:text-[31px] leading-snug ${
-                isDark ? 'text-[#f5eadf]' : 'text-[#2b1416]'
+                isDark ? 'text-[#f5eadf]' : 'text-[#14332a]'
               }`}
             >
               {activeFragrance.tagline}
             </h3>
             <p
               className={`mt-2 text-sm sm:text-[15px] max-w-md leading-relaxed ${
-                isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+                isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
               }`}
             >
               {activeFragrance.description}
@@ -554,7 +605,7 @@ export const App: React.FC = () => {
                     />
                   </defs>
                   <text
-                    fill={isDark ? '#c9a04e' : '#6e1a1e'}
+                    fill={isDark ? '#c9a04e' : '#14332a'}
                     fontSize="8.2"
                     fontWeight="600"
                     letterSpacing="2.4px"
@@ -564,7 +615,7 @@ export const App: React.FC = () => {
                     </textPath>
                   </text>
                 </svg>
-                <div className="absolute w-9 h-9 rounded-full bg-[#6e1a1e] text-[#eee4da] flex items-center justify-center font-serif text-xs font-semibold shadow-sm">
+                <div className="absolute w-9 h-9 rounded-full bg-[#14332a] text-[#f4efe6] flex items-center justify-center font-serif text-xs font-semibold shadow-sm">
                   {activeFragrance.number.replace('N° ', '')}
                 </div>
               </div>
@@ -572,17 +623,17 @@ export const App: React.FC = () => {
               <div>
                 <span
                   className={`block text-[9.5px] tracking-[0.26em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   COMPOSED IN
                 </span>
                 <p
                   className={`font-serif text-xl sm:text-2xl mt-0.5 ${
-                    isDark ? 'text-[#f3e9df]' : 'text-[#2b1416]'
+                    isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
                   }`}
                 >
-                  Kannauj — <span className="italic text-[#d9483b]">India</span>
+                  Kannauj — <span className="italic text-[#b9935a]">India</span>
                 </p>
                 <p
                   className={`mt-1 text-xs flex flex-wrap items-center gap-2 ${
@@ -601,7 +652,7 @@ export const App: React.FC = () => {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => addToCart(activeFragrance)}
-                className="px-6 py-3 rounded-full bg-[#6e1a1e] text-[#eee4da] text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-[#8c2227] transition-all shadow-md cursor-pointer"
+                className="px-6 py-3 rounded-full bg-[#14332a] text-[#f4efe6] text-[11px] tracking-[0.22em] uppercase font-semibold hover:bg-[#8c2227] transition-all shadow-md cursor-pointer"
               >
                 Acquire Extrait — {formatINR(activeFragrance.price100)}
               </button>
@@ -628,7 +679,7 @@ export const App: React.FC = () => {
               className={`mt-3 px-4 py-1.5 rounded-full border text-[10px] tracking-[0.22em] uppercase font-semibold transition-all cursor-pointer ${
                 isDark
                   ? 'border-[#c9a04e]/40 text-[#c9a04e] hover:bg-[#c9a04e] hover:text-[#14090a]'
-                  : 'border-[#6e1a1e]/30 text-[#6e1a1e] hover:bg-[#6e1a1e] hover:text-[#eee4da]'
+                  : 'border-[#14332a]/30 text-[#14332a] hover:bg-[#14332a] hover:text-[#f4efe6]'
               }`}
             >
               Inspect 360° 3D ↗
@@ -638,7 +689,7 @@ export const App: React.FC = () => {
 
         <div
           className={`relative z-20 flex items-center justify-between text-[11px] tracking-[0.24em] uppercase font-semibold pt-4 ${
-            isDark ? 'text-[#c9a04e]' : 'text-[#5c161a]'
+            isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
           }`}
         >
           <span>{activeFragrance.number} / 10</span>
@@ -653,18 +704,18 @@ export const App: React.FC = () => {
       <section
         ref={storySectionRef}
         className={`relative py-28 md:py-36 px-6 md:px-12 overflow-hidden border-t ${
-          isDark ? 'border-[#c9a04e]/15' : 'border-[#6e1a1e]/10'
+          isDark ? 'border-[#c9a04e]/15' : 'border-[#14332a]/10'
         }`}
       >
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 z-10">
-            <span className="text-[10.5px] tracking-[0.28em] uppercase font-semibold text-[#d9483b]">
+            <span className="text-[10.5px] tracking-[0.28em] uppercase font-semibold text-[#b9935a]">
               THE MACERATION — ONE OUDH
             </span>
 
             <p
               className={`mt-5 font-serif text-3xl sm:text-4xl md:text-[44px] leading-[1.22] ${
-                isDark ? 'text-[#f3e9df]' : 'text-[#2b1416]'
+                isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
               }`}
             >
               {activeFragrance.storyQuote.split(' ').map((word, idx) => {
@@ -678,7 +729,7 @@ export const App: React.FC = () => {
                   <span
                     key={idx}
                     className={`inline-block mr-2.5 ${
-                      isAccent ? 'italic text-[#d9483b]' : ''
+                      isAccent ? 'italic text-[#b9935a]' : ''
                     }`}
                   >
                     {word}
@@ -689,32 +740,32 @@ export const App: React.FC = () => {
 
             <div
               className={`mt-10 grid grid-cols-3 gap-6 pt-8 border-t max-w-lg ${
-                isDark ? 'border-[#c9a04e]/20' : 'border-[#6e1a1e]/15'
+                isDark ? 'border-[#c9a04e]/20' : 'border-[#14332a]/15'
               }`}
             >
               <div>
                 <span
                   className={`block font-serif italic text-3xl ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   180
                 </span>
                 <span
                   className={`text-[10px] tracking-[0.2em] uppercase ${
-                    isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+                    isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
                   }`}
                 >
                   Days Maceration
                 </span>
               </div>
               <div>
-                <span className="block font-serif italic text-3xl text-[#d9483b]">
+                <span className="block font-serif italic text-3xl text-[#b9935a]">
                   {activeFragrance.concentration.split('— ')[1]}
                 </span>
                 <span
                   className={`text-[10px] tracking-[0.2em] uppercase ${
-                    isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+                    isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
                   }`}
                 >
                   Pure Extrait Oil
@@ -723,14 +774,14 @@ export const App: React.FC = () => {
               <div>
                 <span
                   className={`block font-serif italic text-3xl ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   100%
                 </span>
                 <span
                   className={`text-[10px] tracking-[0.2em] uppercase ${
-                    isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+                    isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
                   }`}
                 >
                   Wild Assam Agarwood
@@ -758,7 +809,7 @@ export const App: React.FC = () => {
         <div
           ref={marqueeRef}
           className={`mt-20 py-4 border-y overflow-hidden whitespace-nowrap transition-transform duration-150 ${
-            isDark ? 'border-[#c9a04e]/20' : 'border-[#6e1a1e]/15'
+            isDark ? 'border-[#c9a04e]/20' : 'border-[#14332a]/15'
           }`}
         >
           <div className="inline-flex items-center gap-10 animate-marquee">
@@ -766,17 +817,17 @@ export const App: React.FC = () => {
               <span
                 key={i}
                 className={`font-serif italic text-2xl md:text-3xl flex items-center gap-8 ${
-                  isDark ? 'text-[#e7d6c4]/80' : 'text-[#6e1a1e]/80'
+                  isDark ? 'text-[#e7d6c4]/80' : 'text-[#14332a]/80'
                 }`}
               >
                 <span>One Oudh · Kannauj &amp; Assam</span>
-                <span className="text-[#d9483b] not-italic text-sm">✦</span>
+                <span className="text-[#b9935a] not-italic text-sm">✦</span>
                 <span>Copper Deg Distilled</span>
-                <span className="text-[#d9483b] not-italic text-sm">✦</span>
+                <span className="text-[#b9935a] not-italic text-sm">✦</span>
                 <span>{activeFragrance.fullName}</span>
-                <span className="text-[#d9483b] not-italic text-sm">✦</span>
+                <span className="text-[#b9935a] not-italic text-sm">✦</span>
                 <span>Bark, Resin &amp; Skin</span>
-                <span className="text-[#d9483b] not-italic text-sm">✦</span>
+                <span className="text-[#b9935a] not-italic text-sm">✦</span>
               </span>
             ))}
           </div>
@@ -794,12 +845,12 @@ export const App: React.FC = () => {
           <div className="flex items-baseline gap-4 md:gap-6 flex-wrap">
             <h2
               className={`font-display uppercase text-7xl sm:text-8xl md:text-[118px] leading-[0.85] ${
-                isDark ? 'text-[#f3e9df]' : 'text-[#6e1a1e]'
+                isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
               }`}
             >
               OTHER
             </h2>
-            <span className="font-serif italic font-bold text-7xl sm:text-8xl md:text-[118px] leading-[0.85] text-[#d9483b]">
+            <span className="font-serif italic font-bold text-7xl sm:text-8xl md:text-[118px] leading-[0.85] text-[#b9935a]">
               extraits
             </span>
           </div>
@@ -809,7 +860,7 @@ export const App: React.FC = () => {
             className={`self-start md:self-end pb-2 border-b text-[11px] tracking-[0.24em] uppercase font-semibold transition-colors flex items-center gap-3 cursor-pointer ${
               isDark
                 ? 'border-[#c9a04e]/40 text-[#f3e9df] hover:text-[#c9a04e] hover:border-[#c9a04e]'
-                : 'border-[#2b1416]/40 text-[#2b1416] hover:text-[#b3261e] hover:border-[#b3261e]'
+                : 'border-[#14332a]/40 text-[#14332a] hover:text-[#b9935a] hover:border-[#b9935a]'
             }`}
           >
             <span>VIEW THE WHOLE COLLECTION</span>
@@ -873,15 +924,15 @@ export const App: React.FC = () => {
                     isCenterYours
                       ? isDark
                         ? 'bg-[#2a1416]/75 border border-dashed border-[#c9a04e]/60'
-                        : 'bg-[#f7f1ea]/60 border border-dashed border-[#6e1a1e]/40'
+                        : 'bg-[#f7f1ea]/60 border border-dashed border-[#14332a]/40'
                       : isDark
                       ? 'bg-[#241113] shadow-[0_14px_32px_rgba(0,0,0,0.45)] group-hover:bg-[#2f1618]'
-                      : 'bg-[#e5d6c7] shadow-[0_14px_32px_rgba(43,20,22,0.08)] group-hover:bg-[#dfd0c0]'
+                      : 'bg-[#eae3d6] shadow-[0_14px_32px_rgba(43,20,22,0.08)] group-hover:bg-[#e2dacb]'
                   }`}
                 >
                   <div
                     className={`flex items-center justify-between text-[9px] tracking-[0.2em] uppercase font-semibold ${
-                      isDark ? 'text-[#c9a04e]' : 'text-[#5c161a]'
+                      isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                     }`}
                   >
                     <span>{frag.number}</span>
@@ -902,7 +953,7 @@ export const App: React.FC = () => {
                   {isCenterYours ? (
                     <span
                       className={`text-center text-[8.5px] tracking-[0.28em] uppercase font-semibold ${
-                        isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]/75'
+                        isDark ? 'text-[#c9a04e]' : 'text-[#14332a]/75'
                       }`}
                     >
                       YOURS
@@ -916,14 +967,14 @@ export const App: React.FC = () => {
                   <div>
                     <h3
                       className={`font-serif text-lg ${
-                        isDark ? 'text-[#f3e9df]' : 'text-[#2b1416]'
+                        isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
                       } ${isCenterYours ? 'italic' : ''}`}
                     >
                       {frag.fullName}
                     </h3>
                     <p
                       className={`text-[10px] ${
-                        isDark ? 'text-[#c9a04e]/75' : 'text-[#6e1a1e]/65'
+                        isDark ? 'text-[#c9a04e]/75' : 'text-[#14332a]/65'
                       }`}
                     >
                       {frag.subtitle}
@@ -931,7 +982,7 @@ export const App: React.FC = () => {
                   </div>
                   <span
                     className={`text-[10px] font-medium ${
-                      isDark ? 'text-[#e7d6c4]/85' : 'text-[#5c161a]/80'
+                      isDark ? 'text-[#e7d6c4]/85' : 'text-[#14332a]/80'
                     }`}
                   >
                     {isCenterYours ? 'wearing now' : `from ${formatINR(frag.price50)}`}
@@ -953,7 +1004,7 @@ export const App: React.FC = () => {
               />
             </defs>
             <text
-              fill={isDark ? '#c9a04e' : '#6e1a1e'}
+              fill={isDark ? '#c9a04e' : '#14332a'}
               fontSize="24"
               fontFamily="Fraunces, Georgia, serif"
               fontStyle="italic"
@@ -986,10 +1037,10 @@ export const App: React.FC = () => {
               style={{ width: `${r}px`, height: `${r}px` }}
               className={`absolute rounded-full ${
                 idx < 2
-                  ? 'border border-dashed border-[#b3261e]/35'
+                  ? 'border border-dashed border-[#b9935a]/35'
                   : isDark
                   ? 'border border-[#c9a04e]/10'
-                  : 'border border-[#6e1a1e]/[0.07]'
+                  : 'border border-[#14332a]/[0.07]'
               }`}
             />
           ))}
@@ -1019,7 +1070,7 @@ export const App: React.FC = () => {
                   opacity,
                 }}
                 className={`absolute font-display uppercase italic tracking-tight text-4xl sm:text-6xl md:text-8xl whitespace-nowrap transition-transform duration-150 ${
-                  isDark ? 'text-[#e7d6c4]' : 'text-[#5c161a]'
+                  isDark ? 'text-[#e7d6c4]' : 'text-[#14332a]'
                 }`}
               >
                 {word}
@@ -1046,7 +1097,7 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-4">
             <span
               className={`text-[10.5px] tracking-[0.24em] uppercase font-semibold ${
-                isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
               }`}
             >
               INTO THE SCENT — KEEP SCROLLING
@@ -1058,13 +1109,13 @@ export const App: React.FC = () => {
               value={tunnelProgress}
               onChange={(e) => setTunnelProgress(Number(e.target.value))}
               aria-label="Scrub scent tunnel"
-              className="w-28 sm:w-40 accent-[#b3261e] cursor-pointer"
+              className="w-28 sm:w-40 accent-[#b9935a] cursor-pointer"
             />
           </div>
 
           <div
             className={`font-serif text-3xl md:text-4xl ${
-              isDark ? 'text-[#f3e9df]' : 'text-[#6e1a1e]'
+              isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
             }`}
           >
             <span>{String(tunnelProgress).padStart(3, '0')}</span>
@@ -1088,19 +1139,19 @@ export const App: React.FC = () => {
             <div className="relative">
               <span
                 className={`block text-[10.5px] tracking-[0.26em] uppercase font-semibold mb-3 ${
-                  isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                  isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                 }`}
               >
                 THE COMPOSITION
               </span>
               <h2
                 className={`font-display uppercase text-5xl sm:text-6xl leading-[0.92] ${
-                  isDark ? 'text-[#f3e9df]' : 'text-[#2b1416]'
+                  isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
                 }`}
               >
                 THREE MOVEMENTS,
               </h2>
-              <span className="font-serif italic font-bold text-5xl sm:text-6xl leading-[0.95] text-[#d9483b] block mt-1">
+              <span className="font-serif italic font-bold text-5xl sm:text-6xl leading-[0.95] text-[#b9935a] block mt-1">
                 one signature.
               </span>
             </div>
@@ -1114,13 +1165,13 @@ export const App: React.FC = () => {
             >
               <div
                 className={`flex items-center gap-3 pb-3 border-b max-w-xs ${
-                  isDark ? 'border-[#c9a04e]/25' : 'border-[#6e1a1e]/20'
+                  isDark ? 'border-[#c9a04e]/25' : 'border-[#14332a]/20'
                 }`}
               >
-                <span className="font-serif font-bold text-sm text-[#d9483b]">I</span>
+                <span className="font-serif font-bold text-sm text-[#b9935a]">I</span>
                 <span
                   className={`text-[10.5px] tracking-[0.26em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   TOP NOTES
@@ -1140,7 +1191,7 @@ export const App: React.FC = () => {
               </div>
               <p
                 className={`mt-3 text-xs ${
-                  isDark ? 'text-[#d8c8b8]/70' : 'text-[#6e1a1e]/60'
+                  isDark ? 'text-[#d8c8b8]/70' : 'text-[#14332a]/60'
                 }`}
               >
                 The first fifteen minutes
@@ -1167,7 +1218,7 @@ export const App: React.FC = () => {
                   cy="250"
                   r="222"
                   fill="none"
-                  stroke="#b3261e"
+                  stroke="#b9935a"
                   strokeWidth="1"
                   strokeDasharray="2 6"
                   strokeOpacity="0.38"
@@ -1178,7 +1229,7 @@ export const App: React.FC = () => {
                   cy="250"
                   r="172"
                   fill="none"
-                  stroke="#b3261e"
+                  stroke="#b9935a"
                   strokeWidth="0.8"
                   strokeOpacity="0.22"
                 />
@@ -1233,13 +1284,13 @@ export const App: React.FC = () => {
             >
               <div
                 className={`flex items-center justify-end gap-3 pb-3 border-b w-full max-w-xs ${
-                  isDark ? 'border-[#c9a04e]/25' : 'border-[#6e1a1e]/20'
+                  isDark ? 'border-[#c9a04e]/25' : 'border-[#14332a]/20'
                 }`}
               >
-                <span className="font-serif font-bold text-sm text-[#d9483b]">II</span>
+                <span className="font-serif font-bold text-sm text-[#b9935a]">II</span>
                 <span
                   className={`text-[10.5px] tracking-[0.26em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   HEART NOTES
@@ -1259,7 +1310,7 @@ export const App: React.FC = () => {
               </div>
               <p
                 className={`mt-3 text-xs ${
-                  isDark ? 'text-[#d8c8b8]/70' : 'text-[#6e1a1e]/60'
+                  isDark ? 'text-[#d8c8b8]/70' : 'text-[#14332a]/60'
                 }`}
               >
                 From the first hour
@@ -1274,13 +1325,13 @@ export const App: React.FC = () => {
             >
               <div
                 className={`flex items-center justify-end gap-3 pb-3 border-b w-56 ${
-                  isDark ? 'border-[#c9a04e]/25' : 'border-[#6e1a1e]/20'
+                  isDark ? 'border-[#c9a04e]/25' : 'border-[#14332a]/20'
                 }`}
               >
-                <span className="font-serif font-bold text-sm text-[#d9483b]">III</span>
+                <span className="font-serif font-bold text-sm text-[#b9935a]">III</span>
                 <span
                   className={`text-[10.5px] tracking-[0.26em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   BASE NOTES
@@ -1300,7 +1351,7 @@ export const App: React.FC = () => {
               </div>
               <p
                 className={`mt-3 text-xs ${
-                  isDark ? 'text-[#d8c8b8]/70' : 'text-[#6e1a1e]/60'
+                  isDark ? 'text-[#d8c8b8]/70' : 'text-[#14332a]/60'
                 }`}
               >
                 What stays on the skin
@@ -1313,7 +1364,7 @@ export const App: React.FC = () => {
         <div className="mt-12 max-w-xs mx-auto w-full">
           <div
             className={`flex items-center justify-between text-[10px] tracking-[0.24em] uppercase font-semibold pb-2 ${
-              isDark ? 'text-[#e7d6c4]' : 'text-[#5c161a]'
+              isDark ? 'text-[#e7d6c4]' : 'text-[#14332a]'
             }`}
           >
             {(['TOP', 'HEART', 'BASE'] as const).map((m) => (
@@ -1322,7 +1373,7 @@ export const App: React.FC = () => {
                 onClick={() => setActiveMovement(m)}
                 className={`cursor-pointer transition-colors ${
                   activeMovement === m
-                    ? 'text-[#d9483b]'
+                    ? 'text-[#b9935a]'
                     : 'opacity-60 hover:opacity-100'
                 }`}
               >
@@ -1332,12 +1383,12 @@ export const App: React.FC = () => {
           </div>
           <div
             className={`w-full h-[1.5px] relative ${
-              isDark ? 'bg-[#c9a04e]/20' : 'bg-[#6e1a1e]/15'
+              isDark ? 'bg-[#c9a04e]/20' : 'bg-[#14332a]/15'
             }`}
           >
             <div
               className={`h-full transition-all duration-500 ${
-                isDark ? 'bg-[#c9a04e]' : 'bg-[#6e1a1e]'
+                isDark ? 'bg-[#c9a04e]' : 'bg-[#14332a]'
               }`}
               style={{
                 width:
@@ -1359,7 +1410,7 @@ export const App: React.FC = () => {
         className={`relative py-24 px-6 md:px-12 border-t ${
           isDark
             ? 'border-[#c9a04e]/15 bg-[#12070c]/55 backdrop-blur-xs'
-            : 'border-[#6e1a1e]/15 bg-[#e8ddd0]/50'
+            : 'border-[#14332a]/15 bg-[#ebe4d8]/50'
         }`}
       >
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -1377,7 +1428,7 @@ export const App: React.FC = () => {
                 className={`mt-3 px-4 py-1.5 rounded-full border text-[10px] tracking-[0.22em] uppercase transition-all ${
                   isDark
                     ? 'border-[#c9a04e]/40 text-[#c9a04e] group-hover:bg-[#c9a04e] group-hover:text-[#14090a]'
-                    : 'border-[#6e1a1e]/30 text-[#6e1a1e] group-hover:bg-[#6e1a1e] group-hover:text-[#eee4da]'
+                    : 'border-[#14332a]/30 text-[#14332a] group-hover:bg-[#14332a] group-hover:text-[#f4efe6]'
                 }`}
               >
                 Inspect 3D Model ↗
@@ -1386,22 +1437,22 @@ export const App: React.FC = () => {
           </div>
 
           <div className="lg:col-span-7 space-y-6">
-            <span className="text-[10.5px] tracking-[0.28em] uppercase font-semibold text-[#d9483b]">
+            <span className="text-[10.5px] tracking-[0.28em] uppercase font-semibold text-[#b9935a]">
               ATELIER BESPOKE · ONE OUDH INDIA
             </span>
             <h2
               className={`font-serif text-4xl sm:text-5xl ${
-                isDark ? 'text-[#f3e9df]' : 'text-[#2b1416]'
+                isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
               }`}
             >
               {activeFragrance.fullName}{' '}
-              <span className="italic text-[#d9483b] text-3xl sm:text-4xl">
+              <span className="italic text-[#b9935a] text-3xl sm:text-4xl">
                 — {activeFragrance.concentration}
               </span>
             </h2>
             <p
               className={`text-sm max-w-xl leading-relaxed ${
-                isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+                isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
               }`}
             >
               {activeFragrance.storyQuote}
@@ -1410,7 +1461,7 @@ export const App: React.FC = () => {
             <div>
               <label
                 className={`block text-[10px] tracking-[0.24em] uppercase font-semibold mb-2.5 ${
-                  isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                  isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                 }`}
               >
                 SELECT EXTRAIT (10 SCENTS)
@@ -1422,10 +1473,10 @@ export const App: React.FC = () => {
                     onClick={() => selectFragrance(i)}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-serif transition-all cursor-pointer ${
                       i === activeIndex
-                        ? 'bg-[#6e1a1e] text-[#eee4da] italic shadow-sm'
+                        ? 'bg-[#14332a] text-[#f4efe6] italic shadow-sm'
                         : isDark
                         ? 'bg-[#2a1416] text-[#f3e9df] border border-[#c9a04e]/25 hover:border-[#c9a04e]'
-                        : 'bg-[#eee4da] text-[#2b1416] border border-[#6e1a1e]/20 hover:border-[#6e1a1e]'
+                        : 'bg-[#f4efe6] text-[#14332a] border border-[#14332a]/20 hover:border-[#14332a]'
                     }`}
                   >
                     {f.number} · {f.fullName}
@@ -1461,24 +1512,24 @@ export const App: React.FC = () => {
                   className={`p-4 rounded-sm text-left border transition-all cursor-pointer ${
                     selectedSize === opt.size
                       ? isDark
-                        ? 'border-[#c9a04e] bg-[#6e1a1e]/25'
-                        : 'border-[#6e1a1e] bg-[#6e1a1e]/10'
+                        ? 'border-[#c9a04e] bg-[#14332a]/25'
+                        : 'border-[#14332a] bg-[#14332a]/10'
                       : isDark
                       ? 'border-[#c9a04e]/20 bg-[#230e10]/60 hover:border-[#c9a04e]/50'
-                      : 'border-[#6e1a1e]/20 bg-[#eee4da]/60 hover:border-[#6e1a1e]/50'
+                      : 'border-[#14332a]/20 bg-[#f4efe6]/60 hover:border-[#14332a]/50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-[10px] tracking-[0.22em] uppercase font-bold ${
-                        isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                        isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                       }`}
                     >
                       {opt.label}
                     </span>
                     <span
                       className={`font-serif italic text-base ${
-                        isDark ? 'text-[#f3e9df]' : 'text-[#2b1416]'
+                        isDark ? 'text-[#f3e9df]' : 'text-[#14332a]'
                       }`}
                     >
                       {formatINR(opt.price)}
@@ -1486,7 +1537,7 @@ export const App: React.FC = () => {
                   </div>
                   <p
                     className={`mt-1 text-[11px] ${
-                      isDark ? 'text-[#d8c8b8]' : 'text-[#5a4339]'
+                      isDark ? 'text-[#d8c8b8]' : 'text-[#3d564d]'
                     }`}
                   >
                     {opt.sub}
@@ -1498,7 +1549,7 @@ export const App: React.FC = () => {
             <div className="pt-1">
               <label
                 className={`block text-[10px] tracking-[0.24em] uppercase font-semibold mb-2 ${
-                  isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                  isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                 }`}
               >
                 COMPLIMENTARY GOLD-FOIL LABEL ENGRAVING (WATCH 3D BOTTLE UPDATE)
@@ -1512,7 +1563,7 @@ export const App: React.FC = () => {
                 className={`w-full sm:w-80 px-4 py-2.5 rounded-sm border text-sm focus:outline-none ${
                   isDark
                     ? 'bg-[#14090a] border-[#c9a04e]/35 text-[#f3e9df] placeholder:text-[#e7d6c4]/35 focus:border-[#c9a04e]'
-                    : 'bg-[#eee4da] border-[#6e1a1e]/30 text-[#2b1416] placeholder:text-[#6e1a1e]/40 focus:border-[#6e1a1e]'
+                    : 'bg-[#f4efe6] border-[#14332a]/30 text-[#14332a] placeholder:text-[#14332a]/40 focus:border-[#14332a]'
                 }`}
               />
             </div>
@@ -1520,7 +1571,7 @@ export const App: React.FC = () => {
             <div className="pt-3 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => addToCart(activeFragrance)}
-                className="px-8 py-4 rounded-full bg-[#6e1a1e] text-[#eee4da] text-xs tracking-[0.24em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center gap-3 shadow-lg cursor-pointer"
+                className="px-8 py-4 rounded-full bg-[#14332a] text-[#f4efe6] text-xs tracking-[0.24em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center gap-3 shadow-lg cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" />
                 <span>
@@ -1544,8 +1595,8 @@ export const App: React.FC = () => {
       {/* =====================================================================
           FOOTER — COPY EMAIL & GIANT WORDMARK
          ===================================================================== */}
-      <footer className="relative bg-[#160809] text-[#eee4da] pt-24 pb-10 px-6 md:px-12 overflow-hidden border-t border-[#c9a04e]/15">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-10 pb-20 border-b border-[#eee4da]/15">
+      <footer className="relative bg-[#0c1d18] text-[#f4efe6] pt-24 pb-10 px-6 md:px-12 overflow-hidden border-t border-[#c9a04e]/15">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-10 pb-16 border-b border-[#f4efe6]/15">
           <div className="space-y-4 max-w-2xl">
             <span className="text-[10px] tracking-[0.3em] uppercase text-[#c9a04e]">
               PRIVATE CONSULTATIONS — MUMBAI, NEW DELHI &amp; KANNAUJ
@@ -1554,37 +1605,14 @@ export const App: React.FC = () => {
               Commission a private{' '}
               <span className="italic text-[#c9a04e]">oudh maceration.</span>
             </h3>
-
-            <div className="pt-4 flex flex-wrap items-center gap-4">
-              <button
-                onClick={() => {
-                  navigator.clipboard?.writeText('concierge@oneoudh.in');
-                  setCopiedEmail(true);
-                  setTimeout(() => setCopiedEmail(false), 2500);
-                }}
-                className="px-6 py-3 rounded-full border border-[#c9a04e]/40 hover:border-[#c9a04e] text-xs tracking-[0.2em] uppercase flex items-center gap-3 transition-all cursor-pointer"
-              >
-                <span>concierge@oneoudh.in</span>
-                {copiedEmail ? (
-                  <Check className="w-3.5 h-3.5 text-[#c9a04e]" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5 text-[#c9a04e]" />
-                )}
-              </button>
-              {copiedEmail && (
-                <span className="text-xs font-serif italic text-[#c9a04e]">
-                  Copied to clipboard
-                </span>
-              )}
-            </div>
           </div>
         </div>
 
         <div className="pt-12 text-center select-none overflow-hidden">
-          <h2 className="font-serif text-[14vw] leading-[0.82] tracking-[0.04em] text-[#eee4da]/90 uppercase">
+          <h2 className="font-serif text-[14vw] leading-[0.82] tracking-[0.04em] text-[#f4efe6]/90 uppercase">
             ONE OUDH
           </h2>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between text-[10px] tracking-[0.24em] uppercase text-[#eee4da]/50 gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between text-[10px] tracking-[0.24em] uppercase text-[#f4efe6]/50 gap-4">
             <span>© 2026 ONE OUDH · MAISON DE PARFUM INDIA</span>
             <span>TEN EXTRAITS DE PARFUM — BARK, RESIN &amp; SKIN</span>
             <a href="#top-carousel" className="hover:text-[#c9a04e] transition-colors">
@@ -1598,14 +1626,14 @@ export const App: React.FC = () => {
           FULL-SCREEN MENU MODAL
          ===================================================================== */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[110] bg-[#180a0b]/95 backdrop-blur-lg text-[#eee4da] p-6 md:p-12 flex flex-col justify-between overflow-y-auto">
+        <div className="fixed inset-0 z-[110] bg-[#180a0b]/95 backdrop-blur-lg text-[#f4efe6] p-6 md:p-12 flex flex-col justify-between overflow-y-auto">
           <div className="flex items-center justify-between">
             <span className="text-[10.5px] tracking-[0.3em] uppercase text-[#c9a04e]">
               MAISON INDEX · ONE OUDH INDIA
             </span>
             <button
               onClick={() => setMenuOpen(false)}
-              className="w-10 h-10 rounded-full border border-[#eee4da]/25 flex items-center justify-center hover:bg-[#eee4da] hover:text-[#230e10] transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-full border border-[#f4efe6]/25 flex items-center justify-center hover:bg-[#f4efe6] hover:text-[#230e10] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1625,7 +1653,7 @@ export const App: React.FC = () => {
                       setMenuOpen(false);
                       scrollToProductHero();
                     }}
-                    className={`group flex items-baseline justify-between py-3 border-b border-[#eee4da]/15 text-left transition-all cursor-pointer ${
+                    className={`group flex items-baseline justify-between py-3 border-b border-[#f4efe6]/15 text-left transition-all cursor-pointer ${
                       idx === activeIndex ? 'text-[#c9a04e]' : 'hover:text-[#c9a04e]'
                     }`}
                   >
@@ -1645,7 +1673,7 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="lg:col-span-4 flex flex-col justify-between border-l border-[#eee4da]/15 pl-8">
+            <div className="lg:col-span-4 flex flex-col justify-between border-l border-[#f4efe6]/15 pl-8">
               <div className="space-y-4">
                 <p className="text-[10px] tracking-[0.28em] uppercase text-[#c9a04e] mb-4">
                   CHAPTERS
@@ -1661,7 +1689,7 @@ export const App: React.FC = () => {
                     key={nav.href}
                     href={nav.href}
                     onClick={() => setMenuOpen(false)}
-                    className="block font-serif text-xl text-[#eee4da]/85 hover:text-[#c9a04e] transition-colors"
+                    className="block font-serif text-xl text-[#f4efe6]/85 hover:text-[#c9a04e] transition-colors"
                   >
                     {nav.label}
                   </a>
@@ -1679,18 +1707,18 @@ export const App: React.FC = () => {
         <div className="fixed inset-0 z-[110] flex justify-end bg-black/55 backdrop-blur-xs">
           <div
             className={`w-full max-w-md h-full p-6 md:p-8 flex flex-col justify-between shadow-2xl ${
-              isDark ? 'bg-[#1c0d0f] text-[#f3e9df]' : 'bg-[#eee4da] text-[#2b1416]'
+              isDark ? 'bg-[#1c0d0f] text-[#f3e9df]' : 'bg-[#f4efe6] text-[#14332a]'
             }`}
           >
             <div
               className={`flex items-center justify-between pb-5 border-b ${
-                isDark ? 'border-[#c9a04e]/20' : 'border-[#6e1a1e]/15'
+                isDark ? 'border-[#c9a04e]/20' : 'border-[#14332a]/15'
               }`}
             >
               <div>
                 <span
                   className={`text-[9.5px] tracking-[0.26em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   MAISON BAG
@@ -1704,7 +1732,7 @@ export const App: React.FC = () => {
                 className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${
                   isDark
                     ? 'border-[#c9a04e]/30 hover:bg-[#c9a04e] hover:text-[#14090a]'
-                    : 'border-[#6e1a1e]/25 hover:bg-[#6e1a1e] hover:text-[#eee4da]'
+                    : 'border-[#14332a]/25 hover:bg-[#14332a] hover:text-[#f4efe6]'
                 }`}
               >
                 <X className="w-4 h-4" />
@@ -1723,13 +1751,13 @@ export const App: React.FC = () => {
                     className={`p-4 rounded-sm border flex items-center justify-between gap-4 ${
                       isDark
                         ? 'bg-[#281215] border-[#c9a04e]/20'
-                        : 'bg-[#e4d7c8] border-[#6e1a1e]/15'
+                        : 'bg-[#e9e1d4] border-[#14332a]/15'
                     }`}
                   >
                     <div>
                       <span
                         className={`text-[9px] tracking-[0.22em] uppercase font-semibold ${
-                          isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                          isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                         }`}
                       >
                         {item.fragrance.number} ·{' '}
@@ -1739,7 +1767,7 @@ export const App: React.FC = () => {
                         {item.fragrance.fullName}
                       </h4>
                       {item.engraving && (
-                        <p className="text-[10px] tracking-[0.18em] uppercase text-[#d9483b] mt-0.5">
+                        <p className="text-[10px] tracking-[0.18em] uppercase text-[#b9935a] mt-0.5">
                           Engraved: “{item.engraving}”
                         </p>
                       )}
@@ -1750,7 +1778,7 @@ export const App: React.FC = () => {
 
                     <button
                       onClick={() => setCart((prev) => prev.filter((_, i) => i !== idx))}
-                      className="text-xs opacity-60 hover:text-[#d9483b] hover:opacity-100 uppercase tracking-wider cursor-pointer"
+                      className="text-xs opacity-60 hover:text-[#b9935a] hover:opacity-100 uppercase tracking-wider cursor-pointer"
                     >
                       Remove
                     </button>
@@ -1761,18 +1789,18 @@ export const App: React.FC = () => {
 
             <div
               className={`pt-5 border-t space-y-4 ${
-                isDark ? 'border-[#c9a04e]/20' : 'border-[#6e1a1e]/15'
+                isDark ? 'border-[#c9a04e]/20' : 'border-[#14332a]/15'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span
                   className={`text-[10.5px] tracking-[0.24em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   COMPLIMENTARY SAMPLE DUO
                 </span>
-                <span className="font-serif italic text-sm text-[#d9483b]">Included</span>
+                <span className="font-serif italic text-sm text-[#b9935a]">Included</span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="text-xs tracking-[0.24em] uppercase font-semibold">
@@ -1791,7 +1819,7 @@ export const App: React.FC = () => {
                   );
                   setCartOpen(false);
                 }}
-                className="w-full py-4 rounded-full bg-[#6e1a1e] text-[#eee4da] text-xs tracking-[0.24em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                className="w-full py-4 rounded-full bg-[#14332a] text-[#f4efe6] text-xs tracking-[0.24em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer"
               >
                 <span>Proceed to Atelier Checkout</span>
                 <ArrowRight className="w-4 h-4" />
@@ -1807,39 +1835,39 @@ export const App: React.FC = () => {
       {productModalFrag && (
         <div
           onClick={() => setProductModalFrag(null)}
-          className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 md:p-8 overflow-y-auto"
+          className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 md:p-8"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`relative w-full max-w-4xl rounded-sm border p-6 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center shadow-2xl ${
+            className={`relative w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-sm border p-5 sm:p-8 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-8 items-center shadow-2xl ${
               isDark
-                ? 'bg-[#1a0b0d] border-[#c9a04e]/35 text-[#f3e9df]'
-                : 'bg-[#eee4da] border-[#6e1a1e]/25 text-[#2b1416]'
+                ? 'bg-[#0f1d18] border-[#c9a04e]/35 text-[#f3e9df]'
+                : 'bg-[#f4efe6] border-[#14332a]/25 text-[#14332a]'
             }`}
           >
             <button
               onClick={() => setProductModalFrag(null)}
               aria-label="Close 3D product modal"
-              className={`absolute top-5 right-5 w-10 h-10 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${
+              className={`sticky md:absolute top-0 md:top-5 right-0 md:right-5 ml-auto z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                 isDark
-                  ? 'border-[#c9a04e]/35 hover:bg-[#c9a04e] hover:text-[#14090a]'
-                  : 'border-[#6e1a1e]/25 hover:bg-[#6e1a1e] hover:text-[#eee4da]'
+                  ? 'border-[#c9a04e]/35 bg-[#0f1d18]/90 hover:bg-[#c9a04e] hover:text-[#14090a]'
+                  : 'border-[#14332a]/25 bg-[#f4efe6]/90 hover:bg-[#14332a] hover:text-[#f4efe6]'
               }`}
             >
               <X className="w-4 h-4" />
             </button>
 
             {/* Left: Interactive 360° WebGL 3D Bottle */}
-            <div className="md:col-span-5 flex flex-col items-center justify-center">
+            <div className="md:col-span-5 flex flex-col items-center justify-center -mt-4 md:mt-0">
               <Bottle3D
                 fragrance={productModalFrag}
-                size="lg"
+                size={isMobile ? 'md' : 'lg'}
                 interactive
                 engraving={engraving}
               />
               <span
-                className={`mt-2 text-[10px] tracking-[0.24em] uppercase ${
-                  isDark ? 'text-[#c9a04e]/85' : 'text-[#6e1a1e]/75'
+                className={`mt-1 text-[10px] tracking-[0.24em] uppercase ${
+                  isDark ? 'text-[#c9a04e]/85' : 'text-[#14332a]/75'
                 }`}
               >
                 Drag to Rotate 360°
@@ -1847,35 +1875,31 @@ export const App: React.FC = () => {
             </div>
 
             {/* Right: Fragrance Details & Add to Bag */}
-            <div className="md:col-span-7 space-y-5">
+            <div className="md:col-span-7 space-y-4 sm:space-y-5">
               <div>
                 <span
-                  className={`text-[10px] tracking-[0.26em] uppercase font-semibold ${
-                    isDark ? 'text-[#c9a04e]' : 'text-[#6e1a1e]'
+                  className={`text-[10px] tracking-[0.22em] sm:tracking-[0.26em] uppercase font-semibold ${
+                    isDark ? 'text-[#c9a04e]' : 'text-[#14332a]'
                   }`}
                 >
                   {productModalFrag.number} · {productModalFrag.concentration} · {productModalFrag.origin}
                 </span>
-                <h3 className="font-serif italic text-4xl sm:text-5xl mt-1">
+                <h3 className="font-serif italic text-3xl sm:text-5xl mt-1">
                   {productModalFrag.fullName}
                 </h3>
-                <p
-                  className={`text-xs tracking-[0.22em] uppercase mt-1 ${
-                    isDark ? 'text-[#d9483b]' : 'text-[#b3261e]'
-                  }`}
-                >
+                <p className="text-xs tracking-[0.22em] uppercase mt-1 text-[#b9935a]">
                   {productModalFrag.subtitle}
                 </p>
               </div>
 
-              <p className="text-sm leading-relaxed opacity-85">
+              <p className="text-xs sm:text-sm leading-relaxed opacity-85">
                 {productModalFrag.storyQuote}
               </p>
 
               {/* Olfactory Notes Summary */}
               <div
-                className={`grid grid-cols-3 gap-3 py-4 border-y text-xs ${
-                  isDark ? 'border-[#c9a04e]/20' : 'border-[#6e1a1e]/15'
+                className={`grid grid-cols-3 gap-2.5 sm:gap-3 py-3.5 sm:py-4 border-y text-[11px] sm:text-xs ${
+                  isDark ? 'border-[#c9a04e]/20' : 'border-[#14332a]/15'
                 }`}
               >
                 <div>
@@ -1907,12 +1931,12 @@ export const App: React.FC = () => {
                   <button
                     key={opt.size}
                     onClick={() => setSelectedSize(opt.size)}
-                    className={`px-4 py-2 rounded-full text-xs tracking-[0.18em] uppercase border transition-all cursor-pointer ${
+                    className={`flex-1 sm:flex-none px-4 py-2.5 rounded-full text-xs tracking-[0.16em] uppercase border transition-all cursor-pointer ${
                       selectedSize === opt.size
-                        ? 'bg-[#6e1a1e] text-[#eee4da] border-[#6e1a1e]'
+                        ? 'bg-[#14332a] text-[#f4efe6] border-[#14332a]'
                         : isDark
                         ? 'border-[#c9a04e]/35 hover:border-[#c9a04e]'
-                        : 'border-[#6e1a1e]/30 hover:border-[#6e1a1e]'
+                        : 'border-[#14332a]/30 hover:border-[#14332a]'
                     }`}
                   >
                     {opt.label} — {formatINR(opt.price)}
@@ -1921,13 +1945,13 @@ export const App: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="pt-2 flex flex-wrap items-center gap-3">
+              <div className="pt-1 flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => {
                     addToCart(productModalFrag);
                     setProductModalFrag(null);
                   }}
-                  className="px-7 py-3.5 rounded-full bg-[#6e1a1e] text-[#eee4da] text-xs tracking-[0.22em] uppercase font-semibold hover:bg-[#8c2227] transition-all flex items-center gap-2.5 shadow-lg cursor-pointer"
+                  className="w-full sm:w-auto justify-center px-7 py-3.5 rounded-full bg-[#14332a] text-[#f4efe6] text-xs tracking-[0.22em] uppercase font-semibold hover:bg-[#1b4438] transition-all flex items-center gap-2.5 shadow-lg cursor-pointer"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>

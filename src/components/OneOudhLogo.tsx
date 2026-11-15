@@ -14,7 +14,7 @@ export const OneOudhLogo: React.FC<OneOudhLogoProps> = ({ isDark, compact = fals
       {/* Interlocking Double-Ring Flacon Emblem with Faceted Stopper */}
       <svg
         viewBox="0 0 120 100"
-        className={compact ? 'w-11 h-9' : 'w-16 h-14'}
+        className={compact ? 'w-9 h-7 sm:w-11 sm:h-9' : 'w-16 h-14'}
         fill="none"
       >
         {/* Faceted Crystal Stopper */}
@@ -53,8 +53,8 @@ export const OneOudhLogo: React.FC<OneOudhLogoProps> = ({ isDark, compact = fals
 
       {/* Wordmark: OneOudh */}
       <div
-        className={`flex items-center tracking-[0.12em] font-serif leading-none ${
-          compact ? 'text-[15px] md:text-[17px] mt-0.5' : 'text-2xl mt-1'
+        className={`flex items-center tracking-[0.1em] sm:tracking-[0.12em] font-serif leading-none whitespace-nowrap ${
+          compact ? 'text-[13px] sm:text-[15px] md:text-[17px] mt-0.5' : 'text-2xl mt-1'
         }`}
         style={{ color: primary }}
       >
@@ -67,8 +67,8 @@ export const OneOudhLogo: React.FC<OneOudhLogoProps> = ({ isDark, compact = fals
 
       {/* Tagline */}
       <span
-        className={`uppercase tracking-[0.26em] font-medium mt-1 ${
-          compact ? 'text-[7.5px]' : 'text-[9px]'
+        className={`uppercase tracking-[0.18em] sm:tracking-[0.26em] font-medium mt-0.5 sm:mt-1 whitespace-nowrap ${
+          compact ? 'text-[6.5px] sm:text-[7.5px]' : 'text-[9px]'
         }`}
         style={{ color: isDark ? gold : primary }}
       >

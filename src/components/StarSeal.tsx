@@ -25,17 +25,18 @@ export const StarSeal: React.FC<StarSealProps> = ({
     .join('   •   ');
 
   return (
-    <div className="relative w-[860px] md:w-[1040px] h-[520px] flex items-end justify-center select-none pointer-events-none">
+    <div className="relative w-[560px] sm:w-[820px] md:w-[1040px] aspect-[1000/580] flex items-end justify-center select-none pointer-events-none">
       {/* SVG Star-Shaped Scalloped Seal */}
       <svg
         viewBox="0 0 1000 580"
-        className="w-full h-full overflow-visible drop-shadow-[0_-18px_45px_rgba(43,20,22,0.18)]"
+        preserveAspectRatio="xMidYMax meet"
+        className="w-full h-full overflow-visible drop-shadow-[0_-18px_45px_rgba(20,51,42,0.22)]"
       >
         <defs>
           <radialGradient id="sealGrad" cx="50%" cy="68%" r="60%">
-            <stop offset="0%" stopColor="#66221e" />
+            <stop offset="0%" stopColor="#1e493c" />
             <stop offset="55%" stopColor={fragrance.sealBgColor} />
-            <stop offset="100%" stopColor="#280d0e" />
+            <stop offset="100%" stopColor="#0b1c17" />
           </radialGradient>
 
           <path
@@ -175,35 +176,35 @@ export const StarSeal: React.FC<StarSealProps> = ({
       </svg>
 
       {/* Center Seal Typography & Controls */}
-      <div className="absolute bottom-6 inset-x-0 flex flex-col items-center text-center pointer-events-auto z-20">
-        <span className="text-[11px] tracking-[0.28em] uppercase text-[#d8b774]/80 font-medium mb-1">
+      <div className="absolute bottom-3 sm:bottom-6 inset-x-0 flex flex-col items-center text-center pointer-events-auto z-20 px-4">
+        <span className="text-[9.5px] sm:text-[11px] tracking-[0.28em] uppercase text-[#d8b774]/90 font-medium mb-0.5 sm:mb-1">
           {fragrance.number} / 10
         </span>
 
         <h2
           onClick={onDiscover}
-          className="font-serif italic font-semibold text-4xl md:text-[54px] leading-none text-[#f8f1e9] cursor-pointer hover:text-[#e6c47e] transition-colors drop-shadow-sm"
+          className="font-serif italic font-semibold text-2xl sm:text-4xl md:text-[54px] leading-none text-[#f8f1e9] cursor-pointer hover:text-[#e6c47e] transition-colors drop-shadow-sm"
         >
           {fragrance.fullName}
         </h2>
 
-        <p className="mt-2.5 text-[10.5px] tracking-[0.26em] uppercase text-[#e7d6c4]/80 font-medium">
+        <p className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10.5px] tracking-[0.2em] sm:tracking-[0.26em] uppercase text-[#e7d6c4]/85 font-medium">
           {fragrance.subtitle}
         </p>
 
         {/* Bottom Prev / Scroll to Discover / Next Bar */}
-        <div className="mt-6 flex items-center gap-6">
+        <div className="mt-3 sm:mt-6 flex items-center gap-3 sm:gap-6">
           <button
             onClick={onPrev}
             aria-label="Previous fragrance"
-            className="w-9 h-9 rounded-full border border-[#d8b774]/35 flex items-center justify-center text-[#f5eadf]/85 hover:border-[#d8b774] hover:bg-[#d8b774]/15 transition-all cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[#d8b774]/45 flex items-center justify-center text-[#f5eadf] hover:border-[#d8b774] hover:bg-[#d8b774]/15 transition-all cursor-pointer"
           >
             ←
           </button>
 
           <button
             onClick={onDiscover}
-            className="px-4 py-1.5 text-[10px] tracking-[0.28em] uppercase font-semibold text-[#f8f1e9] hover:text-[#d8b774] transition-colors cursor-pointer"
+            className="px-2 sm:px-4 py-1 text-[9px] sm:text-[10px] tracking-[0.22em] sm:tracking-[0.28em] uppercase font-semibold text-[#f8f1e9] hover:text-[#d8b774] transition-colors cursor-pointer"
           >
             SCROLL TO DISCOVER
           </button>
@@ -211,7 +212,7 @@ export const StarSeal: React.FC<StarSealProps> = ({
           <button
             onClick={onNext}
             aria-label="Next fragrance"
-            className="w-9 h-9 rounded-full border border-[#d8b774]/35 flex items-center justify-center text-[#f5eadf]/85 hover:border-[#d8b774] hover:bg-[#d8b774]/15 transition-all cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[#d8b774]/45 flex items-center justify-center text-[#f5eadf] hover:border-[#d8b774] hover:bg-[#d8b774]/15 transition-all cursor-pointer"
           >
             →
           </button>

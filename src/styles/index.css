@@ -2,24 +2,24 @@
 
 @layer base {
   :root {
-    --cream: #eee4da;
-    --ink: #2b1416;
-    --oxblood: #6e1a1e;
-    --accent-red: #b3261e;
+    --cream: #f4efe6;
+    --ink: #14332a;
+    --emerald: #14332a;
+    --accent-gold: #b9935a;
     --gold: #c9a04e;
   }
 
   html {
     font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: #eee4da;
-    color: #2b1416;
+    background-color: #f4efe6;
+    color: #14332a;
   }
 
   body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    background-color: #eee4da;
+    background-color: #f4efe6;
     -webkit-font-smoothing: antialiased;
   }
 }
